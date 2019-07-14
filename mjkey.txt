@@ -1,0 +1,20 @@
+MuJoCo Pro Trial license activation key, number 138099, type 6.
+
+Issued to Haokuan Luo <haokuan@mit.edu>.
+
+Expires August 11, 2019.
+
+This file activates MuJoCo Pro on a single computer with id:
+OSX_60DGE_5B6S022H95NPSYSC276PSLMA502
+
+Do not modify this file. Its entire content, including the
+plain text section, is used by the activation manager.
+
+6fa43e50081f005f64aba9ad7df49c960413c48cd37c2e3c4203ba3c9e289a27
+08dfccfaafdea870c59ed410fdd1661cf5a63a4ba3e07765cab0d924a2023eae
+d6e1046e57a28f556882ab2bb73a8adfa881da6e2079eddabcedc455b712aec4
+111acbef0344fc61b02ea41b6c070cc54032150f25c44e9ff5bef327d8375b04
+9f794655aa845eb1c8a76034fb9abb0769fd043e37758ea201748b353955cc0d
+a2c41dfc1b4f1da77e3f6fb687ec440049ead4f1e3f461210d6f4625b0ba4f4f
+fda547d61a89e1cb040eb89fe4f838678276a3ffe595097405970595bba578e4
+abc65d806ddb04d8d08c2d59b7fa128e14d6ff4a6d2975111c022dcb6809d41e
