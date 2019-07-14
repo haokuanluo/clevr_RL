@@ -22,7 +22,7 @@ import time
 import third_party.clevr_robot_env_utils.question_engine as qeng
 
 
-synonyms_json = os.path.join(__file__, '..', 'templates', 'synonyms.json')
+synonyms_json = os.path.join( 'templates', 'synonyms.json')
 
 
 with open(synonyms_json, 'r') as f:

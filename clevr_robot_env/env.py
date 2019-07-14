@@ -42,6 +42,9 @@ try:
 except ImportError as e:
   print(e)
 
+__file__ = ''
+
+
 DEFAULT_XML_PATH = os.path.join(__file__, 'assets/clevr_default.xml')
 FIXED_PATH = os.path.join(__file__, 'templates', '10_fixed_objective.pkl')
 

@@ -20,10 +20,13 @@ import numpy as np
 import six.moves.cPickle as pickle
 
 # pre-generated questions
-pregen_path = os.path.join(__file__, '..',
+__file__ = ''
+
+
+pregen_path = os.path.join(
                            'assets/pregenerated_data/all_question.pkl')
 variable_input_pregen_path = os.path.join(
-    __file__, '..', 'assets/pregenerated_data/all_questions_variable_input.pkl')
+     'assets/pregenerated_data/all_questions_variable_input.pkl')
 
 
 
