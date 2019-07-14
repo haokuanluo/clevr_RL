@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import sys
 sys.path.insert(0,'/data/vision/billf/scratch/chihan/haokuan/clevr_RL')
+print(sys.path)
 #sys.path.insert(0,'/Users/admin/anaconda3/lib/python3.6/site-packages')
 
 
