@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="e482cc1e-731f-480d-b707-7a0b03d03c78" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/clevr_robot_env/env.py" afterPath="$PROJECT_DIR$/clevr_robot_env/env.py" />
-      <change beforePath="$PROJECT_DIR$/clevr_robot_env/third_party/clevr_robot_env_utils/generate_question.py" afterPath="$PROJECT_DIR$/clevr_robot_env/third_party/clevr_robot_env_utils/generate_question.py" />
-      <change beforePath="$PROJECT_DIR$/clevr_robot_env/utils/load_utils.py" afterPath="$PROJECT_DIR$/clevr_robot_env/utils/load_utils.py" />
-      <change beforePath="$PROJECT_DIR$/clevr_robot_env/utils/xml_utils.py" afterPath="$PROJECT_DIR$/clevr_robot_env/utils/xml_utils.py" />
-    </list>
+    <list default="true" id="e482cc1e-731f-480d-b707-7a0b03d03c78" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
