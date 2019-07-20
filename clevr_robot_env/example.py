@@ -20,7 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
-sys.path.insert(0,'/afs/csail.mit.edu/u/h/haanchi/haokuan/clevr_RL')
+sys.path.insert(0,'/root/clevr_RL')
 print(sys.path)
 #sys.path.insert(0,'/Users/admin/anaconda3/lib/python3.6/site-packages')
 
