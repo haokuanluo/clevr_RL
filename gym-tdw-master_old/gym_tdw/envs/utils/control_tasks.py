@@ -4,7 +4,7 @@ from gym_tdw.envs.utils.object_utils import create_object, teleport_object
 from TDW import tdw
 
 
-def puzzle_6():
+def control_task_ramp():
     sphere = primitives.create_main_sphere({"x": -4.536, "y": 0.8749, "z":-3.762})
     ramp1 = primitives.create_ramp({"x": -4.349, "y": 0.8285, "z": -4.249}, rot={"x": 0, "y": 90, "z": 0}, scale=0.08)
     # ramp2 = primitives.create_ramp({"x": -4.564, "y": 0.8285, "z": -4.24}, rot={"x": 0, "y": 90, "z": 0}, scale=0.08)
@@ -21,18 +21,16 @@ def puzzle_6():
 
     # primitives.create_wall(-3.9, -4.076, "h", "r", 3, profile=[2, 1, 0])
     # primitives.create_wall(-3.605, -4.804, "v", "d", 2, profile=[1, 1])
-    target_spheres = []
-    goal_boundaries = primitives.create_goal(-4.657, -5.333)
-    target_spheres.append(primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x":-4.059,"y":0.8749,"z":-4.573}))
-    target_spheres.append(primitives.create_target_sphere({"x": -20.787, "y": 3, "z": -5.012}, {"x": -3.723, "y": 0.8749, "z": -5.102}))
-    target_spheres.append(primitives.create_target_sphere({"x": -21.787, "y": 3, "z": -5.012}, {"x":-4.357,"y":0.8749,"z":-4.784}))
 
-    return {"sphere": sphere,
-            "target_spheres": target_spheres,
-            "goal_boundaries": goal_boundaries}
+    primitives.create_goal(-4.657, -5.333)
+    primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x":-4.059,"y":0.8749,"z":-4.573})
+    primitives.create_target_sphere({"x": -20.787, "y": 3, "z": -5.012}, {"x": -3.723, "y": 0.8749, "z": -5.102})
+    primitives.create_target_sphere({"x": -21.787, "y": 3, "z": -5.012}, {"x":-4.357,"y":0.8749,"z":-4.784})
+
+    return {"sphere": sphere}
 
 
-def puzzle_5():
+def control_task_ramp_over_wall():
     sphere = primitives.create_main_sphere({"x": -3.941007, "y": 0.8749, "z": -4.725})
     ramp1 = primitives.create_ramp({"x": -3.868, "y": 0.8285, "z": -4.428}, rot={"x": 0, "y": -90, "z": 0},
                                    scale=0.08)
@@ -57,17 +55,19 @@ def puzzle_5():
     break_ids = []
     break_ids.extend(primitives.create_breakable_wall(-4.509, -4.532, "h", "r", 1))
     break_ids.extend(primitives.create_breakable_wall(-3.622, -4.79, "h", "r", 1))
-    target_spheres = []
-    target_spheres.append(primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -3.944025, "y": 0.8749, "z": -3.794}))
-    target_spheres.append(primitives.create_target_sphere({"x": -20.787, "y": 3, "z": -5.012}, {"x": -4.501, "y": 0.8749, "z": -5.309}))
-    target_spheres.append(primitives.create_target_sphere({"x": -21.787, "y": 3, "z": -5.012}, {"x": -3.644, "y": 0.8749, "z": -5.436}))
+    tg1 = primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -3.944025, "y": 0.8749, "z": -3.794})
+    tg2 = primitives.create_target_sphere({"x": -20.787, "y": 3, "z": -5.012}, {"x": -4.501, "y": 0.8749, "z": -5.309})
+    tg3 = primitives.create_target_sphere({"x": -21.787, "y": 3, "z": -5.012}, {"x": -3.644, "y": 0.8749, "z": -5.436})
     return {"sphere": sphere,
             "walls": break_ids,
-            "target_spheres": target_spheres
+            "spheres" : [(sphere, {"x": -3.941007, "y": 0.8749, "z": -4.725}),
+                         (tg1, {"x": -3.944025, "y": 0.8749, "z": -3.794}),
+                         (tg2, {"x": -4.501, "y": 0.8749, "z": -5.309}),
+                         (tg3, {"x": -3.644, "y": 0.8749, "z": -5.436})]
             }
 
 
-def puzzle_3():
+def control_task_stack_1():
     main_sphere = primitives.create_main_sphere({"x": -4.46, "y": 0.8749, "z": -3.944})
     primitives.create_wall(-4.433, -4.305, "h", "r", 1)
     primitives.create_wall(-3.807, -4.305, "h", "r", 2)
@@ -75,77 +75,59 @@ def puzzle_3():
     # create_wall(-4.048, -3.62, "v", "d", 3)
     primitives.create_wall(-3.907, -3.901999, "h", "r", 3)
     # create_wall(-3.948, -5.01, "h", "r", 3)
-    target_spheres = []
+
     sphere = primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, {"x": -4.246, "y": 0.8749, "z": -5.33})
-    target_spheres.append(sphere)
-    target_spheres.append(primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, {"x": -3.764, "y": 0.8749, "z": -3.685}))
-    target_spheres.append(primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, {"x": -3.692, "y": 0.8749, "z": -4.551}))
+    primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, {"x": -3.764, "y": 0.8749, "z": -3.685})
+    primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, {"x": -3.692, "y": 0.8749, "z": -4.551})
     primitives.create_cube_stack(2, -4.431, -5.027, [1, 1])
     primitives.teleport_object(sphere, {"x": -4.431, "y": 1.082928, "z": -5.027})
-
-    return {"sphere":main_sphere,
-            "target_spheres": target_spheres
-            }
+    return {"sphere":main_sphere}
 
 
-def puzzle_2():
+def _control_task2():
     main_sphere = primitives.create_main_sphere({"x": -3.601, "y": 0.8749, "z": -3.608})
     primitives.create_wall(-3.781, -4.444, "h", "r", 2)
     primitives.create_wall(-4.158, -4.914, "v", "d", 3)
     sphere = primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, {"x": -4.246, "y": 0.8749, "z": -5.33})
-    target_spheres = []
-    target_spheres.append(sphere)
-    target_spheres.append(primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, {"x": -3.954, "y": 0.8749, "z": -5.197}))
-    target_spheres.append(primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, {"x": -3.622, "y": 0.8749, "z": -4.589}))
+    primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, {"x": -3.954, "y": 0.8749, "z": -5.197})
+    primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, {"x": -3.622, "y": 0.8749, "z": -4.589})
     primitives.create_cube_stack(2, -4.11, -4.072, [1, 0])
     primitives.teleport_object(sphere, {"x": -4.11, "y": 1.082928, "z": -4.072})
-    return {"sphere":main_sphere,
-            "target_spheres": target_spheres
-            }
+    return {"sphere":main_sphere}
 
 
-def puzzle_4():
+def control_task2():
     sphere = primitives.create_main_sphere({"x": -4.533, "y": 0.8749, "z": -3.688})
-    target_spheres = []
-    target_spheres.append(primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -4.492, "y": 0.8749, "z": -4.459}))
-    target_spheres.append(primitives.create_target_sphere({"x": -23.787, "y": 3, "z": -5.012}, {"x": -4.072, "y": 0.8749, "z": -3.899}))
-    target_spheres.append(primitives.create_target_sphere({"x": -25.787, "y": 3, "z": -5.012}, {"x": -3.921, "y": 0.8749, "z": -4.52}))
-    # target_spheres.append(
-    #     primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -4.215, "y": 0.8749, "z": -5.185}))
-    # target_spheres.append(
-    #     primitives.create_target_sphere({"x": -23.787, "y": 3, "z": -5.012}, {"x": -4.027, "y": 0.8749, "z": -5.152}))
-    # target_spheres.append(
-    #     primitives.create_target_sphere({"x": -25.787, "y": 3, "z": -5.012}, {"x": -4.076, "y": 0.8749, "z": -4.935}))
+    primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -4.492, "y": 0.8749, "z": -4.459})
+    primitives.create_target_sphere({"x": -23.787, "y": 3, "z": -5.012}, {"x": -4.072, "y": 0.8749, "z": -3.899})
+    primitives.create_target_sphere({"x": -25.787, "y": 3, "z": -5.012}, {"x": -3.921, "y": 0.8749, "z": -4.52})
     primitives.create_wall(-4.387, -4.129, "h", "r", 5)
     primitives.create_wall(-4.092, -4.437, "v", "d", 3, profile=[0,1,2])
-    goal_boundaries = primitives.create_goal(-4.349, -5.086)
+    # primitives.create_goal()
     return_objects = {
         "sphere": sphere,
-        "target_spheres": target_spheres,
-        "goal_boundaries": goal_boundaries
     }
+
     return return_objects
 
 
-def puzzle_7():
+def control_task_lever():
     sphere = primitives.create_main_sphere({"x": -3.677, "y": 0.8749, "z": -5.253})
     primitives.create_cyl(1, {"x": -4.101419, "y": 0.8827949, "z": -4.254929}, scale={"x": 0.09, "y": 0.3, "z": 0.09})
     stopper1 = primitives.create_cyl(1, {"x": -3.990618, "y": 0.886, "z": -4.208851}, {"x": 0, "y": 0, "z": 0}, scale={"x": 0.01, "y": 0.06, "z": 0.01})
     stopper2 = primitives.create_cyl(1, {"x": -3.990618, "y": 0.886, "z": -4.307}, {"x": 0, "y": 0, "z": 0}, scale={"x": 0.01, "y": 0.06, "z": 0.01})
     tdw.send_to_server({"$type": "set_kinematic_state", "id": stopper1, "is_kinematic": True, "use_gravity": False})
     tdw.send_to_server({"$type": "set_kinematic_state", "id": stopper2, "is_kinematic": True, "use_gravity": False})
-    target_sphere = []
-    target_sphere.append(primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -4.352, "y": 0.883, "z": -4.372}))
-    target_sphere.append(primitives.create_target_sphere({"x": -20.787, "y": 3, "z": -5.012}, {"x": -4.446, "y": 0.883, "z": -5.487}))
-    target_sphere.append(primitives.create_target_sphere({"x": -21.787, "y": 3, "z": -5.012}, {"x": -3.663, "y": 0.883, "z": -3.679}))
+    primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -4.352, "y": 0.883, "z": -4.372})
+    primitives.create_target_sphere({"x": -20.787, "y": 3, "z": -5.012}, {"x": -4.446, "y": 0.883, "z": -5.487})
+    primitives.create_target_sphere({"x": -21.787, "y": 3, "z": -5.012}, {"x": -3.663, "y": 0.883, "z": -3.679})
     primitives.create_ramp({"x": -4.374, "y": 0.8304, "z": -4.689}, type=2, rot={"x":0, "y":90, "z":0})
     primitives.create_wall(-4.024, -4.414,"v", "d", 2, profile=[2,2,2])
     primitives.create_wall(-4.168, -4.661, "v", "d", 1, profile=[2])
     primitives.create_wall(-4.574, -4.35, "v", "u", 2, profile=[2, 2])
     primitives.create_wall(-4.427, -4.111, "h", "r", 2, profile=[2, 2, 2])
     primitives.create_wall(-4.2, -5.361, "v", "d", 2, profile=[1, 2])
-    return {"sphere":sphere,
-            "target_spheres": target_sphere}
+    return {"sphere":sphere}
 
 
 def control_task_cyl_1():
@@ -168,7 +150,7 @@ def control_task_wall():
             "target": target_sphere}
 
 
-def puzzle_1():
+def control_task1():
 
     material_list = ["polyester_sport_fleece_brushed", "sls_plastic", "metallic_car_paint", "carbon_fiber_twill_weave",
                      "plastic_vinyl_glossy_orange", "plastic_hammered"]

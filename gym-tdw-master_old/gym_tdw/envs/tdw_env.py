@@ -3,8 +3,6 @@ from gym_tdw.envs.utils import gym_utils
 import random
 import time
 import os
-
-
 class TdwEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 

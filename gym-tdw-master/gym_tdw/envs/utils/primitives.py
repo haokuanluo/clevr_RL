@@ -288,6 +288,14 @@ def create_goal(x, z):
     create_wall(x, z, "v", "d", 3,gap=gap, profile=[2]*3)
     create_wall(x + gap, z - 3*gap, "h", "r", 3, gap=gap,profile=[2] * 3)
     create_wall(x + 4*gap, z, "v", "d", 3, gap=gap ,profile=[2] * 3)
+    boundaries = {
+        "z_top": z,
+        "z_bottom": z - 0.2281,
+        "x_left": x + 0.1012,
+        "x_right": x + 0.3381
+    }
+
+    return boundaries
 
 
 def create_breakable_wall(x, z, mode, side, length, gap=0.141, y=0.8749):

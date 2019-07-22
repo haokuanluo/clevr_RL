@@ -53,18 +53,36 @@ scene_state_data = SceneState()
 class puzzle_state():
     def __init__(self, objects):
         self.target_sphere = {}
+
         for sphere in objects["target_spheres"]:
             self.target_sphere[sphere] = 0
         self.sphere = objects["sphere"]
+        if "goal_boundaries" in objects:
+            self.goal_boundaries = objects["goal_boundaries"]
+        else:
+            self.goal_boundaries = None
 
     def process_collision(self, collider_id, collidee_id):
-
         if collider_id == self.sphere and collidee_id in list(self.target_sphere.keys()):
             if self.target_sphere[collidee_id] != 1:
                 self.target_sphere[collidee_id] = 1
+                self.change_material(collidee_id)
 
-    def get_reward(self):
+    def get_reward(self, object_data=None):
+        if self.goal_boundaries:
+            for tgt_sphere in self.target_sphere.keys():
+                pos = object_data[tgt_sphere]["position"]
+                if self.goal_boundaries["x_left"] < pos["x"] < self.goal_boundaries["x_right"] and self.goal_boundaries["z_bottom"] < pos["z"] < self.goal_boundaries["z_top"]:
+                    if self.target_sphere[tgt_sphere] != 1:
+                        self.target_sphere[tgt_sphere] = 1
+                        self.change_material(tgt_sphere)
         return sum(self.target_sphere.values())
+
+    def change_material(self, object_id):
+        tdw.send_to_server(
+            {"$type": "set_visual_material", "id": object_id, "new_material_name": "plastic_hammered",
+             "object_name": "PrimSphere_0",
+             "old_material_index": 0})
 
     def episode_complete(self):
         for key, value in self.target_sphere.items():
@@ -136,12 +154,10 @@ def on_recv(messages):
                 image = Image.open(io.BytesIO(image_bytes))
 
                 if message_dict["avatar_id"] == "uniqueid1":
-                    print("image 1 added")
                     scene_state_data.image_1 = np.array(image)
                     scene_state_data.image_1_ready = True
 
                 else:
-                    print("image 2 added")
                     scene_state_data.image_2 = np.array(image)
                     scene_state_data.image_2_ready = True
 
@@ -157,13 +173,33 @@ def setup_connection():
     tdw.set_controller_id(tdw.get_unique_id())
     tdw.connect_send_to_server_socket("tcp://52.116.149.123:", 1339)
     tdw.connect_recv_from_server_socket("tcp://52.116.149.123:", 1340)
+    # tdw.connect_send_to_server_socket("tcp://localhost:", 1339)
+    # tdw.connect_recv_from_server_socket("tcp://localhost:", 1340)
     t = tdw.thread(tdw.run, args=[on_send, on_recv])
     return t
 
 
 def load_puzzle(puzzle=1):
     if puzzle == 1:
-        objects = control_tasks.control_task1()
+        objects = control_tasks.puzzle_1()
+        return objects
+    elif puzzle == 2:
+        objects = control_tasks.puzzle_2()
+        return objects
+    elif puzzle == 3:
+        objects = control_tasks.puzzle_3()
+        return objects
+    elif puzzle == 4:
+        objects = control_tasks.puzzle_4()
+        return objects
+    elif puzzle == 5:
+        objects = control_tasks.puzzle_5()
+        return objects
+    elif puzzle == 6:
+        objects = control_tasks.puzzle_6()
+        return objects
+    elif puzzle == 7:
+        objects = control_tasks.puzzle_7()
         return objects
 
 

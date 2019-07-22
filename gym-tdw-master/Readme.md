@@ -17,13 +17,13 @@ pip install -e .
 ```
 import gym
 import time
-env = gym.make('gym_tdw:tdw-v0')
+from PIL import Image
+env = gym.make('gym_tdw:tdw_puzzle_1-v0')
 env.set_observation(True)
 
-for i in range(200):
+for i in range(30):
     if i == 0 or i == 100:
         action = env.sample_random_action()
-
     else:
         action = {
             "x": 0,
@@ -32,10 +32,24 @@ for i in range(200):
 
     obs, reward, episode_done, _ = env.step(action)
 
-    if episode_done:
-        break
-
 # Wait until the simulator sends all messages
 time.sleep(20)
 
+
+
 ```
+## Puzzles
+### Puzzle 1  
+![Puzzle 1 image](https://github.ibm.com/Abhi-B/gym-tdw/blob/master/puzzle_images/puzzle_1.png)  
+### Puzzle 2  
+![Puzzle 2 image](https://github.ibm.com/Abhi-B/gym-tdw/blob/master/puzzle_images/puzzle_2.png)  
+### Puzzle 3  
+![Puzzle 3 image](https://github.ibm.com/Abhi-B/gym-tdw/blob/master/puzzle_images/puzzle_3.png)  
+### Puzzle 4  
+![Puzzle 4 image](https://github.ibm.com/Abhi-B/gym-tdw/blob/master/puzzle_images/puzzle_4.png)  
+### Puzzle 5  
+![Puzzle 5 image](https://github.ibm.com/Abhi-B/gym-tdw/blob/master/puzzle_images/puzzle_5.png)  
+### Puzzle 6  
+![Puzzle 6 image](https://github.ibm.com/Abhi-B/gym-tdw/blob/master/puzzle_images/puzzle_6.png)  
+### Puzzle 7  
+![Puzzle 7 image](https://github.ibm.com/Abhi-B/gym-tdw/blob/master/puzzle_images/puzzle_7.png)  

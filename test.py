@@ -2,13 +2,13 @@ import gym
 import time
 import pickle
 
-env = gym.make('gym_tdw:tdw-v0')
+env = gym.make('gym_tdw:tdw_puzzle_1-v0')
 env.set_observation(True)
 print(env.action_space)
 ar = []
 for i in range(100):
     action = env.sample_random_action()
-
+#    action = {'x':0,'z':0}
    # else:
    #     action = {
    #         "x": 0,
