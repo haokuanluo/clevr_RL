@@ -59,8 +59,8 @@ if args.seed:
     np.random.seed(args.random_seed)
 
 state_dim = env.observation_space.shape[0]
-action_dim = env.action_space.shape[0]
-max_action = float(env.action_space.high[0])
+action_dim = 2
+max_action = 100
 min_Val = torch.tensor(1e-7).float().to(device) # min value
 
 directory = './exp' + script_name + args.env_name +'./'
@@ -112,6 +112,7 @@ class Actor(nn.Module):
         self.l1 = nn.Linear(state_dim, 400)
         self.l2 = nn.Linear(400, 300)
         self.l3 = nn.Linear(300, action_dim)
+
 
         self.max_action = max_action
 
@@ -175,7 +176,6 @@ class DDPG(object):
         self.critic_target.load_state_dict(self.critic.state_dict())
         self.critic_optimizer = optim.Adam(self.critic.parameters(), args.learning_rate)
         self.replay_buffer = Replay_buffer()
-        self.writer = SummaryWriter(directory)
         self.num_critic_update_iteration = 0
         self.num_actor_update_iteration = 0
         self.num_training = 0
@@ -243,6 +243,9 @@ class DDPG(object):
         print("model has been loaded...")
         print("====================================")
 
+def transform_action(action):
+    print(action)
+    
 def main():
     agent = DDPG(state_dim, action_dim, max_action)
     ep_r = 0
@@ -252,7 +255,7 @@ def main():
             state = env.reset()
             for t in count():
                 action = agent.select_action(state)
-                next_state, reward, done, info = env.step(np.float32(action))
+                next_state, reward, done, info = env.step(transform_action(np.float32(action)))
                 ep_r += reward
                 env.render()
                 if done or t >= args.max_length_of_trajectory:
@@ -275,7 +278,7 @@ def main():
                 action = (action + np.random.normal(0, args.exploration_noise, size=env.action_space.shape[0])).clip(
                     env.action_space.low, env.action_space.high)
 
-                next_state, reward, done, info = env.step(action)
+                next_state, reward, done, info = env.step(transform_action(np.float32(action)))
                 ep_r += reward
                 if args.render and i >= args.render_interval : env.render()
                 agent.replay_buffer.push((state, next_state, action, reward, np.float(done)))
