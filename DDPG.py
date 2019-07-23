@@ -30,7 +30,7 @@ parser.add_argument('--test_iteration', default=10, type=int)
 
 parser.add_argument('--learning_rate', default=1e-3, type=float)
 parser.add_argument('--gamma', default=0.99, type=int) # discounted factor
-parser.add_argument('--capacity', default=50000, type=int) # replay buffer size
+parser.add_argument('--capacity', default=5000, type=int) # replay buffer size
 parser.add_argument('--batch_size', default=64, type=int) # mini batch size
 parser.add_argument('--seed', default=False, type=bool)
 parser.add_argument('--random_seed', default=9527, type=int)
@@ -42,13 +42,14 @@ parser.add_argument('--log_interval', default=50, type=int) #
 parser.add_argument('--load', default=False, type=bool) # load model
 parser.add_argument('--render_interval', default=100, type=int) # after render_interval, the env.render() will work
 parser.add_argument('--exploration_noise', default=0.1, type=float)
-parser.add_argument('--max_episode', default=100000, type=int) # num of games
+parser.add_argument('--max_episode', default=10000, type=int) # num of games
 parser.add_argument('--max_length_of_trajectory', default=2000, type=int) # num of games
 parser.add_argument('--print_log', default=5, type=int)
 parser.add_argument('--update_iteration', default=10, type=int)
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
 script_name = os.path.basename(__file__)
 env = gym.make('gym_tdw:tdw_puzzle_1-v0')
 env.set_observation(True)
@@ -58,7 +59,7 @@ if args.seed:
     torch.manual_seed(args.random_seed)
     np.random.seed(args.random_seed)
 
-state_dim = env.observation_space.shape[0]
+state_dim = 500
 action_dim = 2
 max_action = 100
 min_Val = torch.tensor(1e-7).float().to(device) # min value
@@ -107,10 +108,9 @@ class Actor(nn.Module):
         self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
         # 4608 input features, 64 output features (see sizing flow below)
-        self.fc1 = torch.nn.Linear(18 * H * W / 4, state_dim)
+        self.fc1 = torch.nn.Linear(18 * H * W // 4, state_dim)
 
-        self.l1 = nn.Linear(state_dim, 400)
-        self.l2 = nn.Linear(400, 300)
+        self.l1 = nn.Linear(state_dim, 300)
         self.l3 = nn.Linear(300, action_dim)
 
 
@@ -118,16 +118,15 @@ class Actor(nn.Module):
 
     def forward(self, x):
         x = x.permute(2, 0, 1)
-
+        x.unsqueeze_(0)
         x = F.relu(self.conv1(x))
 
         # Size changes from (18, 32, 32) to (18, 16, 16)
         x = self.pool(x)
 
-        x = x.view(-1, 18 * H * W / 4)
+        x = x.view(-1, 18 * H * W // 4)
         x = F.relu(self.fc1(x))
         x = F.relu(self.l1(x))
-        x = F.relu(self.l2(x))
         x = self.max_action * torch.tanh(self.l3(x))
         return x
 
@@ -140,26 +139,25 @@ class Critic(nn.Module):
         self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
         # 4608 input features, 64 output features (see sizing flow below)
-        self.fc1 = torch.nn.Linear(18 * H * W / 4, state_dim)
+        self.fc1 = torch.nn.Linear(18 * H * W // 4, state_dim)
 
 
-        self.l1 = nn.Linear(state_dim + action_dim, 400)
-        self.l2 = nn.Linear(400 , 300)
+        self.l1 = nn.Linear(state_dim + action_dim, 300)
         self.l3 = nn.Linear(300, 1)
 
     def forward(self, x, u):
         x = x.permute(2, 0, 1)
 
+        x.unsqueeze_(0)
         x = F.relu(self.conv1(x))
 
         # Size changes from (18, 32, 32) to (18, 16, 16)
         x = self.pool(x)
 
-        x = x.view(-1, 18 * H * W / 4)
+        x = x.view(-1, 18 * H * W // 4)
         x = F.relu(self.fc1(x))
 
         x = F.relu(self.l1(torch.cat([x, u], 1)))
-        x = F.relu(self.l2(x))
         x = self.l3(x)
         return x
 
@@ -181,7 +179,7 @@ class DDPG(object):
         self.num_training = 0
 
     def select_action(self, state):
-        state = torch.FloatTensor(state.reshape(1, -1)).to(device)
+        state = torch.FloatTensor(state).to(device)
         return self.actor(state).cpu().data.numpy().flatten()
 
     def update(self):
@@ -245,6 +243,7 @@ class DDPG(object):
 
 def transform_action(action):
     print(action)
+    return {'x':int(action[0]),'z':int(action[1])}
     
 def main():
     agent = DDPG(state_dim, action_dim, max_action)
@@ -271,14 +270,16 @@ def main():
         if args.load: agent.load()
         for i in range(args.max_episode):
             state = env.reset()
+            state = np.zeros((480,640,3))
             for t in count():
                 action = agent.select_action(state)
 
                 # issue 3 add noise to action
-                action = (action + np.random.normal(0, args.exploration_noise, size=env.action_space.shape[0])).clip(
-                    env.action_space.low, env.action_space.high)
+                action = (action + np.random.normal(0, args.exploration_noise, size=2)).clip(
+                    -100, 100)
 
                 next_state, reward, done, info = env.step(transform_action(np.float32(action)))
+                next_state = next_state['image_1']
                 ep_r += reward
                 if args.render and i >= args.render_interval : env.render()
                 agent.replay_buffer.push((state, next_state, action, reward, np.float(done)))
@@ -292,6 +293,7 @@ def main():
                         print("Ep_i \t{}, the ep_r is \t{:0.2f}, the step is \t{}".format(i, ep_r, t))
                     ep_r = 0
                     break
+                agent.update()
 
             if i % args.log_interval == 0:
                 agent.save()
