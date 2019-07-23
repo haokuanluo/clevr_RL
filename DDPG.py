@@ -130,6 +130,19 @@ class Actor(nn.Module):
         x = self.max_action * torch.tanh(self.l3(x))
         return x
 
+    def train(self,x):
+        x = x.permute(0, 3, 1, 2)
+        x = F.relu(self.conv1(x))
+
+        # Size changes from (18, 32, 32) to (18, 16, 16)
+        x = self.pool(x)
+
+        x = x.view(-1, 18 * H * W // 4)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.l1(x))
+        x = self.max_action * torch.tanh(self.l3(x))
+        return x
+
 
 class Critic(nn.Module):
     def __init__(self, state_dim, action_dim):
@@ -149,6 +162,20 @@ class Critic(nn.Module):
         x = x.permute(2, 0, 1)
 
         x.unsqueeze_(0)
+        x = F.relu(self.conv1(x))
+
+        # Size changes from (18, 32, 32) to (18, 16, 16)
+        x = self.pool(x)
+
+        x = x.view(-1, 18 * H * W // 4)
+        x = F.relu(self.fc1(x))
+
+        x = F.relu(self.l1(torch.cat([x, u], 1)))
+        x = self.l3(x)
+        return x
+
+    def train(self,x,u):
+        x=x.permute(0,3,1,2)
         x = F.relu(self.conv1(x))
 
         # Size changes from (18, 32, 32) to (18, 16, 16)
@@ -194,11 +221,11 @@ class DDPG(object):
             reward = torch.FloatTensor(r).to(device)
 
             # Compute the target Q value
-            target_Q = self.critic_target(next_state, self.actor_target(next_state))
+            target_Q = self.critic_target.train(next_state, self.actor_target(next_state))
             target_Q = reward + ((1 - done) * args.gamma * target_Q).detach()
 
             # Get current Q estimate
-            current_Q = self.critic(state, action)
+            current_Q = self.critic.train(state, action)
 
             # Compute critic loss
             critic_loss = F.mse_loss(current_Q, target_Q)
@@ -209,7 +236,7 @@ class DDPG(object):
             self.critic_optimizer.step()
 
             # Compute actor loss
-            actor_loss = -self.critic(state, self.actor(state)).mean()
+            actor_loss = -self.critic.train(state, self.actor.train(state)).mean()
             self.writer.add_scalar('Loss/actor_loss', actor_loss, global_step=self.num_actor_update_iteration)
 
             # Optimize the actor
