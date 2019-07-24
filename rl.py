@@ -12,7 +12,9 @@ from torch.distributions import Categorical
 import time
 import pickle
 from scipy.spatial import distance
+from tensorboardX import SummaryWriter
 
+writer = SummaryWriter('logs')
 
 #Parameters
 env = gym.make('gym_tdw:tdw_puzzle_1-v0')
@@ -154,6 +156,7 @@ def main():
             if reward < -100:
                 done = True
             state = state['image_1']
+            writer.add_image('Image', state, t)
             pickle.dump(state,open('img.p','wb'))
             if render: env.render()
             model.rewards.append(reward)
