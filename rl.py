@@ -15,8 +15,8 @@ from scipy.spatial import distance
 
 
 #Parameters
-#env = gym.make('gym_tdw:tdw_puzzle_1-v0')
-#env.set_observation(True)
+env = gym.make('gym_tdw:tdw_puzzle_1-v0')
+env.set_observation(True)
 
 #env.seed(1)
 torch.manual_seed(1)
@@ -144,8 +144,8 @@ def main():
     sum_reward = 0
     for i_episode in count(episodes):
         state = None
-        env = gym.make('gym_tdw:tdw_puzzle_1-v0')
-        env.set_observation(True)
+        #env = gym.make('gym_tdw:tdw_puzzle_1-v0')
+        #env.set_observation(True)
         for t in count():
             action = select_action(state)
             state, reward, done, info = env.step(transform_action(action))
@@ -154,6 +154,7 @@ def main():
             if reward < -100:
                 done = True
             state = state['image_1']
+            pickle.dump(state,open('img.p','wb'))
             if render: env.render()
             model.rewards.append(reward)
             rewards.append(reward)
@@ -166,7 +167,7 @@ def main():
             print(i_episode,sum_reward)
             pickle.dump(rewards,open('AC_rewards.p','wb'))
         finish_episode()
-        env.close()
+        #env.close()
 
 if __name__ == '__main__':
     main()
