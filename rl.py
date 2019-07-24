@@ -11,6 +11,8 @@ import torch.nn.functional as F
 from torch.distributions import Categorical
 import time
 import pickle
+from scipy.spatial import distance
+
 
 #Parameters
 env = gym.make('gym_tdw:tdw_puzzle_1-v0')
@@ -134,6 +136,14 @@ def finish_episode():
 def transform_action(action):
     multiplier = 200/grid
     return {'x':(action//grid)*multiplier-100,'z':(action%grid)*multiplier-100}
+
+def aux_reward(state):
+    pos1 = state['object_information'][6933368]['position']
+    pos2 = state['object_information'][6410141]['position']
+    pos1=(pos1['x'],pos1['y'],pos1['z'])
+    pos2 = (pos2['x'],pos2['y'],pos2['z'])
+    return -distance.euclidean(pos1,pos2)
+
 def main():
     running_reward = 10
     live_time = []
@@ -143,6 +153,7 @@ def main():
         for t in count():
             action = select_action(state)
             state, reward, done, info = env.step(transform_action(action))
+            reward = 10000*reward + aux_reward(state)
             state = state['image_1']
             if render: env.render()
             model.rewards.append(reward)
