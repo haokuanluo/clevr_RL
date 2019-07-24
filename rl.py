@@ -129,13 +129,14 @@ def transform_action(action):
 def aux_reward(state):
     #print(state['object_information'])
     #return 0
-    for obj in state['object_information']:
-        if obj
-    pos1 = state['object_information'][6900322]['position']
-    pos2 = state['object_information'][9925230]['position']
-    pos1=(pos1['x'],pos1['y'],pos1['z'])
-    pos2 = (pos2['x'],pos2['y'],pos2['z'])
-    return -distance.euclidean(pos1,pos2)
+    pos = []
+    for k,v in state['object_information'].items():
+        if v['model_name']=='prim_sphere':
+            x=v['position']
+
+            pos.append((x['x'],x['y'],x['z']))
+
+    return -distance.euclidean(pos[0],pos[1])
 
 def main():
     running_reward = 10
