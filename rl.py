@@ -84,6 +84,8 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
 def select_action(state):
+    if state is None:
+        return 100
     state = torch.from_numpy(state).float()
     probs, state_value = model(state)
     m = Categorical(probs)
@@ -125,8 +127,12 @@ def transform_action(action):
     return {'x':(action//grid)*multiplier-100,'z':(action%grid)*multiplier-100}
 
 def aux_reward(state):
-    pos1 = state['object_information'][6933368]['position']
-    pos2 = state['object_information'][6410141]['position']
+    #print(state['object_information'])
+    #return 0
+    for obj in state['object_information']:
+        if obj
+    pos1 = state['object_information'][6900322]['position']
+    pos2 = state['object_information'][9925230]['position']
     pos1=(pos1['x'],pos1['y'],pos1['z'])
     pos2 = (pos2['x'],pos2['y'],pos2['z'])
     return -distance.euclidean(pos1,pos2)
@@ -136,8 +142,7 @@ def main():
     live_time = []
     sum_reward = 0
     for i_episode in count(episodes):
-        state = env.reset()
-        state = state['image_1']
+        state = None
         for t in count():
             action = select_action(state)
             state, reward, done, info = env.step(transform_action(action))
@@ -150,7 +155,7 @@ def main():
             print(action,reward,t,i_episode,sum_reward)
 
 
-            if done or t >= 1000:
+            if done or t >= 100:
                 break
         if i_episode % 1 == 0:
             print(i_episode,sum_reward)
