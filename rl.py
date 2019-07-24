@@ -43,7 +43,7 @@ class Policy(nn.Module):
         self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
         # 4608 input features, 64 output features (see sizing flow below)
-        self.fc1 = torch.nn.Linear(18 * H * W / 4, 64)
+        self.fc1 = torch.nn.Linear(18 * H * W // 4, 64)
 
         # 64 input features, 10 output features for our 10 defined classes
         self.fc2 = torch.nn.Linear(64, 32)
@@ -57,10 +57,10 @@ class Policy(nn.Module):
 
         self.save_actions = []
         self.rewards = []
-        os.makedirs('./AC_CartPole-v0', exist_ok=True)
 
     def forward(self, x):
         x = x.permute(2,0,1)
+        x.unsqueeze_(0)
 
         x = F.relu(self.conv1(x))
 
@@ -68,7 +68,7 @@ class Policy(nn.Module):
         x = self.pool(x)
 
 
-        x = x.view(-1, 18 * H * W / 4)
+        x = x.view(-1, 18 * H * W // 4)
 
 
         x = F.relu(self.fc1(x))
@@ -81,20 +81,7 @@ class Policy(nn.Module):
 model = Policy()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-def plot(steps):
-    ax = plt.subplot(111)
-    ax.cla()
-    ax.grid()
-    ax.set_title('Training')
-    ax.set_xlabel('Episode')
-    ax.set_ylabel('Run Time')
-    ax.plot(steps)
-    RunTime = len(steps)
 
-    path = './AC_CartPole-v0/' + 'RunTime' + str(RunTime) + '.jpg'
-    if len(steps) % 200 == 0:
-        plt.savefig(path)
-    plt.pause(0.0000001)
 
 def select_action(state):
     state = torch.from_numpy(state).float()
@@ -147,28 +134,26 @@ def aux_reward(state):
 def main():
     running_reward = 10
     live_time = []
+    sum_reward = 0
     for i_episode in count(episodes):
         state = env.reset()
         state = state['image_1']
         for t in count():
             action = select_action(state)
             state, reward, done, info = env.step(transform_action(action))
+            sum_reward = sum_reward + reward
             reward = 10000*reward + aux_reward(state)
             state = state['image_1']
             if render: env.render()
             model.rewards.append(reward)
             rewards.append(reward)
+            print(action,reward,t,i_episode,sum_reward)
 
 
             if done or t >= 1000:
                 break
-        running_reward = running_reward * 0.99 + t * 0.01
-        live_time.append(t)
-        plot(live_time)
-        if i_episode % 100 == 0:
-            modelPath = './AC_CartPole_Model/ModelTraing'+str(i_episode)+'Times.pkl'
-            torch.save(model, modelPath)
-            print(i_episode)
+        if i_episode % 1 == 0:
+            print(i_episode,sum_reward)
             pickle.dump(rewards,open('AC_rewards.p','wb'))
         finish_episode()
 
