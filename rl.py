@@ -14,7 +14,7 @@ import pickle
 from scipy.spatial import distance
 from tensorboardX import SummaryWriter
 
-writer = SummaryWriter('logs')
+writer = SummaryWriter('logimg2')
 
 #Parameters
 env = gym.make('gym_tdw:tdw_puzzle_1-v0')
@@ -144,6 +144,7 @@ def main():
     running_reward = 10
     live_time = []
     sum_reward = 0
+    img_it = 0
     for i_episode in count(episodes):
         state = None
         #env = gym.make('gym_tdw:tdw_puzzle_1-v0')
@@ -156,7 +157,11 @@ def main():
             if reward < -100:
                 done = True
             state = state['image_1']
-            writer.add_image('Image', state, t)
+            #print(type(state),state.shape)
+            img = torch.from_numpy(state).float()
+            img = img.permute(2,0,1)
+            writer.add_image('Image', img, img_it)
+            img_it = img_it + 1
             pickle.dump(state,open('img.p','wb'))
             if render: env.render()
             model.rewards.append(reward)
