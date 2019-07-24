@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from itertools import count
 from collections import namedtuple
+import torchvision.utils as vutils
 
 import torch
 import torch.nn as nn
@@ -143,6 +144,7 @@ def aux_reward(state):
 def main():
     running_reward = 10
     live_time = []
+    imag = []
     sum_reward = 0
     img_it = 0
     for i_episode in count(episodes):
@@ -157,6 +159,13 @@ def main():
             if reward < -100:
                 done = True
             state = state['image_1']
+            imag.append(state)
+            if img_it > 50:
+                imag = np.concatenate(imag,axis=0)
+                imag = torch.from_numpy(imag).float()
+
+                x = vutils.make_grid(imag, normalize=True, scale_each=True)
+                writer.add_image('Image_seq', x, 0)
             #print(type(state),state.shape)
             img = torch.from_numpy(state).float()
             img = img.permute(2,0,1)
