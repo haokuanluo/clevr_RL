@@ -41,14 +41,25 @@ class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()
 
-        self.conv1 = torch.nn.Conv2d(3, 18, kernel_size=3, stride=1, padding=1)
-        self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=8, stride=4)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.bn3 = nn.BatchNorm2d(64)
+        self.fc4 = nn.Linear(7 * 7 * 64, 512)
+        self.head = nn.Linear(512, 32)
+
+
+
+        #self.conv1 = torch.nn.Conv2d(3, 18, kernel_size=3, stride=1, padding=1)
+        #self.pool = torch.nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
 
         # 4608 input features, 64 output features (see sizing flow below)
-        self.fc1 = torch.nn.Linear(18 * H * W // 4, 64)
+        #self.fc1 = torch.nn.Linear(18 * H * W // 4, 64)
 
         # 64 input features, 10 output features for our 10 defined classes
-        self.fc2 = torch.nn.Linear(64, 32)
+        #self.fc2 = torch.nn.Linear(64, 32)
 
 
 
@@ -64,17 +75,12 @@ class Policy(nn.Module):
         x = x.permute(2,0,1)
         x.unsqueeze_(0)
 
-        x = F.relu(self.conv1(x))
-
-        # Size changes from (18, 32, 32) to (18, 16, 16)
-        x = self.pool(x)
-
-
-        x = x.view(-1, 18 * H * W // 4)
-
-
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+        x = x.float() / 255
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.fc4(x.view(x.size(0), -1)))
+        x = F.relu(self.head(x))
         action_score = self.action_head(x)
         state_value = self.value_head(x)
 
