@@ -158,10 +158,11 @@ def main():
         for t in range(100):
             action = select_action(state)
             state, reward, done, info = env.step(transform_action(action))
+            sum_reward = sum_reward + reward
             if done:
                 print('finished')
                 finished = finished + 1
-            sum_reward = sum_reward + reward
+                reward = reward - 5
             reward = reward + aux_reward(state)
             if reward < -100:
                 done = True
@@ -192,6 +193,8 @@ def main():
             pickle.dump(rewards,open('AC_rewards.p','wb'))
             torch.save(model.state_dict(),'AC_model')
         finish_episode()
+        if finished > 5:
+            steps = 100
         final_reward.append(steps)
         pickle.dump(final_reward,open('AC_steps.p','wb'))
         #env.close()
