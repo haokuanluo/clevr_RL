@@ -24,13 +24,13 @@ env.set_observation(True)
 torch.manual_seed(1)
 
 C,H,W = 3,480,640
-grid = 20
+grid = 5
 action_space = grid*grid
 
 
 #Hyperparameters
-learning_rate = 0.01
-gamma = 0.99
+learning_rate = 0.001
+gamma = 0
 episodes = 20000
 render = False
 eps = np.finfo(np.float32).eps.item()
@@ -87,7 +87,7 @@ optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 def select_action(state):
     if state is None:
-        return 100
+        return 10
     state = torch.from_numpy(state).float()
     probs, state_value = model(state)
     m = Categorical(probs)
@@ -125,8 +125,8 @@ def finish_episode():
     del model.save_actions[:]
 
 def transform_action(action):
-    multiplier = 200/grid
-    return {'x':(action//grid)*multiplier-100,'z':(action%grid)*multiplier-100}
+    multiplier = 15/grid
+    return {'x':(action//grid)*multiplier-7,'z':(action%grid)*multiplier-7}
 
 def aux_reward(state):
     #print(state['object_information'])
@@ -183,7 +183,7 @@ def main():
             if render: env.render()
             model.rewards.append(reward)
             rewards.append(reward)
-            print(action,reward,t,i_episode,sum_reward)
+            print(transform_action(action),reward,t,i_episode,sum_reward)
             steps = steps + 1
 
             if t >= 100 or reward>0 or finished > 5:
