@@ -172,11 +172,16 @@ def puzzle_1():
 
     material_list = ["polyester_sport_fleece_brushed", "sls_plastic", "metallic_car_paint", "carbon_fiber_twill_weave",
                      "plastic_vinyl_glossy_orange", "plastic_hammered"]
-
-    sphere = primitives.create_main_sphere({"x": -4.093, "y": 0.8749, "z": -5.463})
+    reset_params = {}
+    pos = {"x": -4.093, "y": 0.8749, "z": -5.463}
+    sphere = primitives.create_main_sphere(pos)
+    reset_params[sphere] = pos
     # sphere = primitives.create_main_sphere({"x": -4.522, "y": 0.8749, "z": -4.51})
     target_spheres = []
-    target_spheres.append(primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, {"x": -4.46, "y": 0.8749, "z": -3.944}))
+    pos = {"x": -4.46, "y": 0.8749,"z": -3.944}
+    tgt_sphere = primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, pos)
+    reset_params[tgt_sphere] = pos
+    target_spheres.append(tgt_sphere)
     # target_spheres.append(
     #     primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, {"x": -4.158, "y": 0.8749, "z": -4.502}))
 
@@ -193,14 +198,16 @@ def puzzle_1():
     # teleport_object(cube, {"x": -4.578, "y": 0.8749, "z": -4.196})
     # teleport_object(cube2, {"x": -4.413, "y": 0.8749, "z": -4.196})
     # teleport_object(cube3, {"x": -4.247, "y": 0.8749, "z": -4.196})
-    primitives.create_wall(-4.578, -4.196, "h", "r", 3)
-    primitives.create_wall(-4.254, -5.288, "h", "r", 3)
-    primitives.create_wall(-4.246, -4.761, "h", "r", 3)
-    primitives.create_wall(-3.806, -4.537, "h", "r", 2)
-    primitives.create_wall(-4.41, -5.483, "h", "r", 1)
-    primitives.create_wall(-4.157, -3.991, "h", "r", 1)
+    reset_params.update(primitives.create_wall(-4.578, -4.196, "h", "r", 3))
+    reset_params.update(primitives.create_wall(-4.254, -5.288, "h", "r", 3))
+    reset_params.update(primitives.create_wall(-4.246, -4.761, "h", "r", 3))
+    reset_params.update(primitives.create_wall(-3.806, -4.537, "h", "r", 2))
+    reset_params.update(primitives.create_wall(-4.41, -5.483, "h", "r", 1))
+    reset_params.update(primitives.create_wall(-4.157, -3.991, "h", "r", 1))
+
     return {"sphere": sphere,
-            "target_spheres": target_spheres}
+            "target_spheres": target_spheres,
+            "reset_params": reset_params}
 
 
 def stacked_cube_sphere():

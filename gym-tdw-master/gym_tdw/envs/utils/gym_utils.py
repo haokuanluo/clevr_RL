@@ -54,8 +54,8 @@ class puzzle_state():
     def __init__(self, objects):
         self.target_sphere = {}
 
-        for sphere in objects["target_spheres"]:
-            self.target_sphere[sphere] = 0
+        self.init_tgt_sphere_reward_state(objects=objects)
+
         self.sphere = objects["sphere"]
         if "goal_boundaries" in objects:
             self.goal_boundaries = objects["goal_boundaries"]
@@ -68,10 +68,14 @@ class puzzle_state():
                 self.target_sphere[collidee_id] = 1
                 self.change_material(collidee_id)
 
-    def get_reward(self, object_data=None):
+    def init_tgt_sphere_reward_state(self, objects):
+        for sphere in objects["target_spheres"]:
+            self.target_sphere[sphere] = 0
+
+    def get_reward(self, _object_data=None):
         if self.goal_boundaries:
             for tgt_sphere in self.target_sphere.keys():
-                pos = object_data[tgt_sphere]["position"]
+                pos = _object_data[tgt_sphere]["position"]
                 if self.goal_boundaries["x_left"] < pos["x"] < self.goal_boundaries["x_right"] and self.goal_boundaries["z_bottom"] < pos["z"] < self.goal_boundaries["z_top"]:
                     if self.target_sphere[tgt_sphere] != 1:
                         self.target_sphere[tgt_sphere] = 1
@@ -84,7 +88,16 @@ class puzzle_state():
              "object_name": "PrimSphere_0",
              "old_material_index": 0})
 
-    def episode_complete(self):
+    def episode_complete(self, _object_data=None):
+        if _object_data is not None:
+
+            for _sphere in list(self.target_sphere.keys()) + [self.sphere]:
+
+                pos = _object_data[_sphere]["position"]
+
+                if not(-4.718 < pos["x"] < -3.532 and -5.687 < pos["z"] < -3.527):
+                    return True
+
         for key, value in self.target_sphere.items():
             if value != 1:
                 return False
@@ -143,6 +156,8 @@ def on_recv(messages):
 
         if message_dict["$type"] == "objects_data":
             scene_state_data.set_object_data(message_dict["objects"])
+
+
 
         if "collision" in message_dict["$type"]:
             scene_state_data.set_collision_data(message_dict)
@@ -222,3 +237,25 @@ def set_output(output):
 
 def update_info():
     tdw.send_to_server({"$type": "get_objects_data"})
+
+def reset_scene(objects):
+    reset_params = objects["reset_params"]
+    for sphere_id in reset_params.keys():
+        if sphere_id in objects["target_spheres"]:
+            tdw.send_to_server([{"$type": "stop_object", "id": sphere_id},
+                                {"$type": "rotate_object_to_euler_angles", "euler_angles": {"x": 0, "y": 0, "z": 0},
+                                 "id": sphere_id},
+                                {"$type": "teleport_object", "id": sphere_id,
+                                 "position": reset_params[sphere_id]},
+                                {"$type": "set_visual_material", "id": sphere_id,
+                                 "new_material_name": "plastic_vinyl_glossy_yellow",
+                                 "object_name": "PrimSphere_0",
+                                 "old_material_index": 0}
+                                ])
+        else:
+            tdw.send_to_server([{"$type": "stop_object", "id": sphere_id},
+                                {"$type": "rotate_object_to_euler_angles", "euler_angles": {"x": 0, "y": 0, "z": 0},
+                                 "id": sphere_id},
+                                {"$type": "teleport_object", "id": sphere_id,
+                                 "position": reset_params[sphere_id]}
+                                ])

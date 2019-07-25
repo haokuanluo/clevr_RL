@@ -78,7 +78,7 @@ class TdwEnv(gym.Env):
             pass
         obs["object_information"] = gym_utils.scene_state_data.parse_object_data()
         reward = self.puzzle_state.get_reward()
-        return obs, reward, self.puzzle_state.episode_complete(), None
+        return obs, reward, self.puzzle_state.episode_complete(obs["object_information"]), None
 
     def check_collision(self):
         gym_utils.scene_state_data.parse_collision_data()
@@ -96,7 +96,8 @@ class TdwEnv(gym.Env):
             self.output_images = output
 
     def reset(self):
-        pass
+        gym_utils.reset_scene(self.objects)
+        self.puzzle_state.init_tgt_sphere_reward_state(self.objects)
 
     def _render(self):
         pass

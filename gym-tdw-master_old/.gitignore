@@ -1,6 +1,0 @@
-gym_tdw.egg-info/
-gym_tdw/__pycache__/
-gym_tdw/envs/__pycache__/
-.idea/
-venv/
-gym_tdw/envs/utils/__pycache__/

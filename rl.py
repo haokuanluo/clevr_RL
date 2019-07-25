@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from itertools import count
 from collections import namedtuple
 import torchvision.utils as vutils
-
 import torch
 import torch.nn as nn
 import torch.optim as optim

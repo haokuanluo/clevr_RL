@@ -132,6 +132,7 @@ def create_cube_breakable(pos, tele_pos, scale=0.1):
 
 def create_wall(x, z, mode, side, length, gap=0.141, profile=None):
     global global_object_creator, global_ptr, global_list
+    reset_param = {}
     if profile is None:
         profile = [global_list[i] for i in range(global_ptr, global_ptr + length)]
         global_ptr += length
@@ -139,7 +140,9 @@ def create_wall(x, z, mode, side, length, gap=0.141, profile=None):
     if mode == "h":
         for _ in range(length):
             global_object_creator["x"] = global_object_creator["x"] - 1.1
-            create_cube(profile[idx], dict(global_object_creator), {"x": x, "y": 0.8749, "z": z})
+            pos = dict({"x": x, "y": 0.8749, "z": z})
+            cube_id = create_cube(profile[idx], dict(global_object_creator), pos)
+            reset_param[cube_id] = pos
             if side == "r":
                 x = x + gap
             else:
@@ -148,13 +151,15 @@ def create_wall(x, z, mode, side, length, gap=0.141, profile=None):
     if mode == "v":
         for _ in range(length):
             global_object_creator["x"] = global_object_creator["x"] - 1.1
-            create_cube(profile[idx], dict(global_object_creator), {"x": x, "y": 0.8749, "z": z})
+            pos = dict({"x": x, "y": 0.8749, "z": z})
+            cube_id = create_cube(profile[idx], dict(global_object_creator), pos)
+            reset_param[cube_id] = pos
             if side == "u":
                 z = z + gap
             else:
                 z = z - gap
             idx += 1
-
+    return reset_param
 
 def create_cyl(profile, tele_pos, rot={"x": 0, "y": 0, "z": 90}, scale={"x": 0.1, "y": 0.1, "z": 0.1}):
     global global_object_creator, global_ptr
