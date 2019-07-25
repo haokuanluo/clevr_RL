@@ -14,7 +14,7 @@ import pickle
 from scipy.spatial import distance
 from tensorboardX import SummaryWriter
 
-writer = SummaryWriter('logimg2')
+writer = SummaryWriter('logimg4')
 
 #Parameters
 env = gym.make('gym_tdw:tdw_puzzle_1-v0')
@@ -146,43 +146,54 @@ def main():
     imag = []
     sum_reward = 0
     img_it = 0
+    steps = 0
+    final_reward = []
     for i_episode in count(episodes):
         state = None
         #env = gym.make('gym_tdw:tdw_puzzle_1-v0')
-        #env.set_observation(True)
-        for t in count():
+        k = env.reset()
+        print(type(k))
+        steps = 0
+        finished = 0
+        for t in range(100):
             action = select_action(state)
             state, reward, done, info = env.step(transform_action(action))
+            if done:
+                print('finished')
+                finished = finished + 1
             sum_reward = sum_reward + reward
             reward = reward + aux_reward(state)
             if reward < -100:
                 done = True
             state = state['image_1']
             imag.append(state)
-            if img_it > 50:
-                imag = np.concatenate(imag,axis=0)
-                imag = torch.from_numpy(imag).float()
+            #if img_it > 50:
+            #    imag = np.concatenate(imag,axis=0)
+            #    imag = torch.from_numpy(imag).float()
 
-                x = vutils.make_grid(imag, normalize=True, scale_each=True)
-                writer.add_image('Image_seq', x, 0)
+            #    x = vutils.make_grid(imag, normalize=True, scale_each=True)
+            #    writer.add_image('Image_seq', x, 0)
             #print(type(state),state.shape)
-            img = torch.from_numpy(state).float()
-            img = img.permute(2,0,1)
-            writer.add_image('Image', img, img_it)
-            img_it = img_it + 1
+            #img = torch.from_numpy(state).float()
+            #img = img.permute(2,0,1)
+            #writer.add_image('Image', img, img_it)
+            #img_it = img_it + 1
             pickle.dump(state,open('img.p','wb'))
             if render: env.render()
             model.rewards.append(reward)
             rewards.append(reward)
             print(action,reward,t,i_episode,sum_reward)
+            steps = steps + 1
 
-
-            if done or t >= 100:
+            if t >= 100 or reward>0 or finished > 5:
                 break
         if i_episode % 1 == 0:
             print(i_episode,sum_reward)
             pickle.dump(rewards,open('AC_rewards.p','wb'))
+            torch.save(model.state_dict(),'AC_model')
         finish_episode()
+        final_reward.append(steps)
+        pickle.dump(final_reward,open('AC_steps.p','wb'))
         #env.close()
 
 if __name__ == '__main__':
