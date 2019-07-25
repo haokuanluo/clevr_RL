@@ -330,7 +330,6 @@ def create_breakable_wall(x, z, mode, side, length, gap=0.141, y=0.8749):
 
 def create_cube_stack(stack_length, x, z, profiles=None):
     y = 0.8830635
-    reset_params = {}
     global global_object_creator, global_ptr, global_list
     idx = 0
     for _ in range(stack_length):
@@ -338,10 +337,7 @@ def create_cube_stack(stack_length, x, z, profiles=None):
         new_pos = dict(global_object_creator)
         new_pos["y"] = 0
         if profiles != None and len(profiles) == stack_length:
-            pos = {"x": x, "y": y, "z": z}
-            cube_id = create_cube(profiles[idx], dict(global_object_creator), pos)
-            reset_params[cube_id] = pos
+            create_cube(profiles[idx], dict(global_object_creator), {"x":x, "y":y, "z":z})
             idx += 1
         y = y + 0.09991
     step_one_frame(100)
-    return reset_params

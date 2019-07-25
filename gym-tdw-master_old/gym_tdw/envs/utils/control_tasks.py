@@ -68,74 +68,39 @@ def puzzle_5():
 
 
 def puzzle_3():
-    reset_params = {}
+    main_sphere = primitives.create_main_sphere({"x": -4.46, "y": 0.8749, "z": -3.944})
+    primitives.create_wall(-4.433, -4.305, "h", "r", 1)
+    primitives.create_wall(-3.807, -4.305, "h", "r", 2)
+    primitives.create_wall(-3.948, -4.446, "v", "d", 3)
+    # create_wall(-4.048, -3.62, "v", "d", 3)
+    primitives.create_wall(-3.907, -3.901999, "h", "r", 3)
+    # create_wall(-3.948, -5.01, "h", "r", 3)
     target_spheres = []
-    pos = {"x": -4.46, "y": 0.8749, "z": -3.944}
-    main_sphere = primitives.create_main_sphere(pos)
-    reset_params[main_sphere] = pos
-    reset_params.update(primitives.create_wall(-4.433, -4.305, "h", "r", 1))
-    reset_params.update(primitives.create_wall(-3.807, -4.305, "h", "r", 2))
-    reset_params.update(primitives.create_wall(-3.948, -4.446, "v", "d", 3))
-    reset_params.update(primitives.create_wall(-3.907, -3.901999, "h", "r", 3))
-    pos = {"x": -4.246, "y": 0.8749, "z": -5.33}
-    sphere = primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, pos)
+    sphere = primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, {"x": -4.246, "y": 0.8749, "z": -5.33})
     target_spheres.append(sphere)
-    reset_params[sphere] = pos
-    pos = {"x": -3.764, "y": 0.8749, "z": -3.685}
-    sphere = primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, pos)
-    target_spheres.append(sphere)
-    reset_params[sphere] = pos
-    pos = {"x": -3.692, "y": 0.8749, "z": -4.551}
-    sphere = primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, pos)
-    target_spheres.append(sphere)
-    reset_params[sphere] = pos
-    reset_params.update(primitives.create_cube_stack(2, -4.431, -5.027, [1, 1]))
-    pos = {"x": -4.431, "y": 1.082928, "z": -5.027}
-    reset_params[sphere] = pos
-    primitives.teleport_object(sphere, pos)
+    target_spheres.append(primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, {"x": -3.764, "y": 0.8749, "z": -3.685}))
+    target_spheres.append(primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, {"x": -3.692, "y": 0.8749, "z": -4.551}))
+    primitives.create_cube_stack(2, -4.431, -5.027, [1, 1])
+    primitives.teleport_object(sphere, {"x": -4.431, "y": 1.082928, "z": -5.027})
 
-    return {"sphere": main_sphere,
-            "target_spheres": target_spheres,
-            "reset_params": reset_params
+    return {"sphere":main_sphere,
+            "target_spheres": target_spheres
             }
 
 
 def puzzle_2():
-    reset_params = {}
+    main_sphere = primitives.create_main_sphere({"x": -3.601, "y": 0.8749, "z": -3.608})
+    primitives.create_wall(-3.781, -4.444, "h", "r", 2)
+    primitives.create_wall(-4.158, -4.914, "v", "d", 3)
+    sphere = primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, {"x": -4.246, "y": 0.8749, "z": -5.33})
     target_spheres = []
-
-    pos = {"x": -3.601, "y": 0.8749, "z": -3.608}
-    # pos = {"x": -4.3, "y": 0.8749, "z": -4.072}
-    main_sphere = primitives.create_main_sphere(pos)
-    reset_params[main_sphere] = pos
-
-    reset_params.update(primitives.create_wall(-3.781, -4.444, "h", "r", 2))
-    reset_params.update(primitives.create_wall(-4.158, -4.914, "v", "d", 3))
-
-    pos = {"x": -4.246, "y": 0.8749, "z": -5.33}
-    sphere = primitives.create_target_sphere({"x": -17.504, "y": 3, "z": -5.012}, pos)
-    reset_params[sphere] = pos
     target_spheres.append(sphere)
-
-    pos = {"x": -3.954, "y": 0.8749, "z": -5.197}
-    tgt_sphere = primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, pos)
-    target_spheres.append(tgt_sphere)
-    reset_params[tgt_sphere] = pos
-
-    pos = {"x": -3.622, "y": 0.8749, "z": -4.589}
-    tgt_sphere = primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, pos)
-    target_spheres.append(tgt_sphere)
-    reset_params[tgt_sphere] = pos
-
-    # TODO: Reset Params for cube stack
-    reset_params.update(primitives.create_cube_stack(2, -4.11, -4.072, [1, 0]))
-    pos = {"x": -4.11, "y": 1.082928, "z": -4.072}
-    reset_params[sphere] = pos
-    primitives.teleport_object(sphere, pos)
-
-    return {"sphere": main_sphere,
-            "target_spheres": target_spheres,
-            "reset_params": reset_params
+    target_spheres.append(primitives.create_target_sphere({"x": -18.504, "y": 3, "z": -5.012}, {"x": -3.954, "y": 0.8749, "z": -5.197}))
+    target_spheres.append(primitives.create_target_sphere({"x": -19.504, "y": 3, "z": -5.012}, {"x": -3.622, "y": 0.8749, "z": -4.589}))
+    primitives.create_cube_stack(2, -4.11, -4.072, [1, 0])
+    primitives.teleport_object(sphere, {"x": -4.11, "y": 1.082928, "z": -4.072})
+    return {"sphere":main_sphere,
+            "target_spheres": target_spheres
             }
 
 

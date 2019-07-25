@@ -188,7 +188,8 @@ def setup_connection():
     tdw.set_controller_id(tdw.get_unique_id())
     tdw.connect_send_to_server_socket("tcp://52.116.149.123:", 1339)
     tdw.connect_recv_from_server_socket("tcp://52.116.149.123:", 1340)
-    # git 
+    # tdw.connect_send_to_server_socket("tcp://localhost:", 1339)
+    # tdw.connect_recv_from_server_socket("tcp://localhost:", 1340)
     t = tdw.thread(tdw.run, args=[on_send, on_recv])
     return t
 
