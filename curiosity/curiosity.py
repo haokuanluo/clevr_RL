@@ -135,7 +135,8 @@ class Agent(object):
         self.state = torch.from_numpy(state).float()
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
-        self.reward = max(min(self.reward, 1), -1)
+        #self.reward = max(min(self.reward, 1), -1)
+        #print(self.reward)
         self.values.append(value)
         self.log_probs.append(log_prob)
         self.rewards.append(self.reward)
@@ -241,7 +242,7 @@ def train(args, optimizer):
         optimizer.step()
         player.clear_actions()
 
-args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":1000,"M":10000,
+args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,
          "seed":42
         }
 
