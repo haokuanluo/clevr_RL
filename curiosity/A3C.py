@@ -148,7 +148,6 @@ class Agent(object):
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
         #self.reward = max(min(self.reward, 1), -1)
-        print(self.reward)
         self.values.append(value)
         self.log_probs.append(log_prob)
         self.rewards.append(self.reward)
@@ -226,11 +225,11 @@ def test(args, shared_model,render=False):
             #                      time.gmtime(time.time() - start_time)),
             #        reward_sum, player.eps_len, reward_mean))
 
-            if reward_sum > args['SSL']:
-                player.model.load_state_dict(shared_model.state_dict())
-                state_to_save = player.model.state_dict()
-                torch.save(state_to_save, '{0}{1}.dat'.format(
-                    args['SMD'], args['ENV']))
+            #if reward_sum > args['SSL']:
+            #    player.model.load_state_dict(shared_model.state_dict())
+            #    state_to_save = player.model.state_dict()
+            #    torch.save(state_to_save, '{0}{1}.dat'.format(
+            #        args['SMD'], args['ENV']))
 
             reward_sum = 0
             player.eps_len = 0
