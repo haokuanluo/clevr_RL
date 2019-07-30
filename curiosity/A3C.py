@@ -20,6 +20,7 @@ from universe.wrappers import Unvectorize, Vectorize
 from torch.autograd import Variable
 from gym.spaces.box import Box
 from torch.multiprocessing import Process
+import torch.multiprocessing as mp
 from model import Policy
 #from SharedOptimizers import SharedAdam
 
@@ -41,7 +42,9 @@ from model import Policy
 #Hyperparameters
 learning_rate = 0.001
 action_space = 6
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+#device = 'cuda' if torch.cuda.is_available() else 'cpu'
+#device = 'cuda'
+device = 'cpu'
 
 
 def ensure_shared_grads(model, shared_model):
@@ -178,7 +181,7 @@ class Agent(object):
         self.rewards = []
         self.entropies = []
         return self
-
+loss = []
 def test(args, shared_model,render=False):
     action_space = 6
 
@@ -212,6 +215,9 @@ def test(args, shared_model,render=False):
             reward_total_sum += reward_sum
             reward_mean = reward_total_sum / num_tests
             print(reward_sum, player.eps_len, reward_mean)
+            loss.append(reward_sum)
+            import pickle
+            pickle.dump(loss,open('A3Closs','wb'))
             #log['{}_log'.format(args['ENV'])].info(
             #    "Time {0}, episode reward {1}, episode length {2}, reward mean {3:.4f}".
             #    format(
@@ -342,11 +348,11 @@ def loadarguments():
     else:
         optimizer = None
 
-args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":100,"M":10000,'W':5,
+args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":1000,"M":10000,'W':5,
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam'
         }
 
-
+#mp.set_start_method('spawn')
 processes = []
 loadarguments()
 

@@ -170,7 +170,7 @@ class Agent(object):
         self.entropies = []
         return self
 
-
+loss = []
 
 def train(args, optimizer):
 
@@ -232,13 +232,16 @@ def train(args, optimizer):
                 player.log_probs[i] * \
                 Variable(gae) - 0.01 * player.entropies[i]
         print(reward_sum,len(player.rewards),reward_sum/len(player.rewards))
+        import pickle
+        loss.append(reward_sum)
+        pickle.dump(loss,open('A2Closs','wb'))
         optimizer.zero_grad()
         (policy_loss + 0.5 * value_loss).backward()
         torch.nn.utils.clip_grad_norm(player.model.parameters(), 40)
         optimizer.step()
         player.clear_actions()
 
-args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":100,"M":10000,
+args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":1000,"M":10000,
          "seed":42
         }
 
