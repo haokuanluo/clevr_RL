@@ -192,6 +192,8 @@ def test(args, shared_model,render=False):
     player = Agent(None, env, args, None)
     player.model = Policy(
         player.env.observation_space.shape[0], action_space)
+    if device == 'cuda':
+        player.model.cuda()
     player.state = player.env.reset()
     player.state = torch.from_numpy(player.state).float()
     player.model.eval()
@@ -320,6 +322,8 @@ def loadarguments():
     env = atari_env(args['ENV'])
 
     shared_model = Policy(env.observation_space.shape[0], action_space)
+    if device == 'cuda':
+        shared_model.cuda()
     if args['L']:
         saved_state = torch.load(
             '{0}{1}.dat'.format(args['LMD'], args['ENV']))
