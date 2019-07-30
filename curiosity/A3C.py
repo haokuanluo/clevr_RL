@@ -195,8 +195,8 @@ def test(args, shared_model,render=False):
     if device == 'cuda':
         player.model.cuda()
     player.state = player.env.reset()
-    player.state = torch.from_numpy(player.state).float()
-    player.model.eval()
+    player.state = torch.from_numpy(player.state).float().to(device)
+    #player.model.eval()
 
     while True:
         if player.done:
@@ -229,7 +229,7 @@ def test(args, shared_model,render=False):
             player.eps_len = 0
             state = player.env.reset()
             time.sleep(60)
-            player.state = torch.from_numpy(state).float()
+            player.state = torch.from_numpy(state).float().to(device)
 
 
 def train(args, optimizer, rank, shared_model):
