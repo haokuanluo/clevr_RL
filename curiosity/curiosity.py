@@ -131,7 +131,7 @@ class Agent(object):
         self.entropies.append(entropy)
         action = prob.multinomial(num_samples = 1).data
         log_prob = log_prob.gather(1, Variable(action))
-        state, self.reward, self.done, self.info = self.env.step(action.numpy())
+        state, self.reward, self.done, self.info = self.env.step(action.cpu().numpy())
         self.state = torch.from_numpy(state).float()
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
