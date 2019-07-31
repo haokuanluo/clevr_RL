@@ -113,7 +113,7 @@ class NormalizedEnv(vectorized.ObservationWrapper):
 
 
 class Agent(object):
-    def __init__(self, model, env, args, state):
+    def __init__(self, model, env, args, state,gpu_id = 0):
         self.model = model
         self.env = env
         self.current_life = 0
@@ -129,15 +129,20 @@ class Agent(object):
         self.done = True
         self.info = None
         self.reward = 0
+        self.gpu_id = gpu_id
 
     def action_train(self):
         if self.done:
-            self.cx = Variable(torch.zeros(1, 256).float().to(device))
-            self.hx = Variable(torch.zeros(1, 256).float().to(device))
+
+            with torch.cuda.device(self.gpu_id):
+                self.cx = Variable(torch.zeros(1, 256).float().to(device))
+                self.hx = Variable(torch.zeros(1, 256).float().to(device))
         else:
             self.cx = Variable(self.cx.data)
             self.hx = Variable(self.hx.data)
-        value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device)), (self.hx, self.cx)))
+
+        with torch.cuda.device(self.gpu_id):
+            value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device)), (self.hx, self.cx)))
         prob = F.softmax(logit)
         log_prob = F.log_softmax(logit)
         entropy = -(log_prob * prob).sum(1)
@@ -156,16 +161,19 @@ class Agent(object):
 
     def action_test(self):
         if self.done:
-            self.cx = Variable(torch.zeros(1, 256).float().to(device), volatile=True)
-            self.hx = Variable(torch.zeros(1, 256).float().to(device), volatile=True)
+            with torch.cuda.device(self.gpu_id):
+                self.cx = Variable(torch.zeros(1, 256).float().to(device), volatile=True)
+                self.hx = Variable(torch.zeros(1, 256).float().to(device), volatile=True)
         else:
             self.cx = Variable(self.cx.data, volatile=True)
             self.hx = Variable(self.hx.data, volatile=True)
-        value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device), volatile=True), (self.hx, self.cx)))
+        with torch.cuda.device(self.gpu_id):
+            value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device), volatile=True), (self.hx, self.cx)))
         prob = F.softmax(logit)
         action = prob.max(1)[1].data.cpu().numpy()
         state, self.reward, self.done, self.info = self.env.step(action[0])
-        self.state = torch.from_numpy(state).float().to(device)
+        with torch.cuda.device(self.gpu_id):
+            self.state = torch.from_numpy(state).float().to(device)
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
         return self
@@ -187,20 +195,24 @@ def test(args, shared_model,render=False):
     action_space = 6
 
     torch.manual_seed(args['seed'])
+    torch.cuda.manual_seed(args['seed'])
+
     # gym_pull.pull('github.com/ppaquette/gym-doom')
     env = atari_env('PongNoFrameskip-v4')
     reward_sum = 0
     start_time = time.time()
     num_tests = 0
     reward_total_sum = 0
-    player = Agent(None, env, args, None)
+    player = Agent(None, env, args, None,0)
     player.model = Policy(
         player.env.observation_space.shape[0], action_space)
-    if device == 'cuda':
-        player.model.cuda()
+    gpu_id = 0
+    with torch.cuda.device(gpu_id):
+        player.model = player.model.cuda() if gpu_id >= 0 else player.model
     player.state = player.env.reset()
-    player.state = torch.from_numpy(player.state).float().to(device)
-    #player.model.eval()
+    with torch.cuda.device(gpu_id):
+        player.state = torch.from_numpy(player.state).float().to(device)
+    player.model.eval()
 
     while True:
         if player.done:
@@ -236,13 +248,14 @@ def test(args, shared_model,render=False):
             player.eps_len = 0
             state = player.env.reset()
             time.sleep(60)
-            player.state = torch.from_numpy(state).float().to(device)
+            with torch.cuda.device(gpu_id):
+                player.state = torch.from_numpy(state).float().to(device)
 
 
 def train(args, optimizer, rank, shared_model):
 
     action_space = 6
-
+    gpu_id = args['gpu_ids'][rank]
     #torch.manual_seed(args['seed'] )
     torch.manual_seed(args['seed'] + rank)
     torch.cuda.manual_seed(args['seed'] + rank)
@@ -254,13 +267,12 @@ def train(args, optimizer, rank, shared_model):
     if optimizer == None:
         optimizer = optim.Adam(shared_model.parameters(), lr=learning_rate)
 
-    player = Agent(None, env, args, None)
+    player = Agent(None, env, args, None,gpu_id)
     player.model = Policy(
         player.env.observation_space.shape[0], action_space)
-    if device == 'cuda':
-        gpu_id = args['gpu_ids'][rank]
-        with torch.cuda.device(gpu_id):
-            player.model = player.model.cuda() if gpu_id >= 0 else player.model
+
+    with torch.cuda.device(gpu_id):
+        player.model = player.model.cuda() if gpu_id >= 0 else player.model
 
 
 
