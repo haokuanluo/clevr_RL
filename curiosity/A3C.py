@@ -15,8 +15,8 @@ from scipy.spatial import distance
 #from tensorboardX import SummaryWriter
 from cv2 import resize
 from skimage.color import rgb2gray
-from universe import vectorized
-from universe.wrappers import Unvectorize, Vectorize
+#from universe import vectorized
+#from universe.wrappers import Unvectorize, Vectorize
 from torch.autograd import Variable
 from gym.spaces.box import Box
 from torch.multiprocessing import Process
@@ -56,15 +56,26 @@ def ensure_shared_grads(model, shared_model):
             shared_param._grad = param.grad
         else:
             shared_param._grad = param.grad.clone().cpu()
-def atari_env(env_id):
-    env = gym.make(env_id)
-    if len(env.observation_space.shape) > 1:
-        env = Vectorize(env)
-        env = AtariRescale(env)
-        env = NormalizedEnv(env)
-        env = Unvectorize(env)
 
-    return env
+
+class atari_env(object):
+    def __init__(self,env_id):
+        self.env = gym.make(env_id)
+
+    def step(self,action):
+        a,b,c,d = self.env.step(action)
+        print(a.shape)
+        return a,b,c,d
+
+    def reset(self):
+        return self.env.reset()
+
+    def render(self):
+        self.env.render()
+
+    def seed(self,seed):
+        self.env.seed(seed)
+
 
 
 def _process_frame(frame, conf):
@@ -77,40 +88,6 @@ def _process_frame(frame, conf):
     frame = np.reshape(frame, [1, 80, 80])
     return frame
 
-class AtariRescale(vectorized.ObservationWrapper):
-    def __init__(self, env):
-        super(AtariRescale, self).__init__(env)
-        self.observation_space = Box(0.0, 1.0, [1, 80, 80])
-        self.conf = {}
-        #self.conf = env_conf
-
-    def _observation(self, observation_n):
-        return [
-            _process_frame(observation, self.conf)
-            for observation in observation_n
-        ]
-
-class NormalizedEnv(vectorized.ObservationWrapper):
-    def __init__(self, env=None):
-        super(NormalizedEnv, self).__init__(env)
-        self.state_mean = 0
-        self.state_std = 0
-        self.alpha = 0.9999
-        self.num_steps = 0
-
-    def _observation(self, observation_n):
-        for observation in observation_n:
-            self.num_steps += 1
-            self.state_mean = self.state_mean * self.alpha + \
-                observation.mean() * (1 - self.alpha)
-            self.state_std = self.state_std * self.alpha + \
-                observation.std() * (1 - self.alpha)
-
-        unbiased_mean = self.state_mean / (1 - pow(self.alpha, self.num_steps))
-        unbiased_std = self.state_std / (1 - pow(self.alpha, self.num_steps))
-
-        return [(observation - unbiased_mean) / (unbiased_std + 1e-8)
-                for observation in observation_n]
 
 
 class Agent(object):
