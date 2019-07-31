@@ -163,7 +163,7 @@ class Agent(object):
             self.hx = Variable(self.hx.data, volatile=True)
         value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device), volatile=True), (self.hx, self.cx)))
         prob = F.softmax(logit)
-        action = prob.max(1)[1].data.numpy()
+        action = prob.max(1)[1].data.cpu().numpy()
         state, self.reward, self.done, self.info = self.env.step(action[0])
         self.state = torch.from_numpy(state).float().to(device)
         self.eps_len += 1
@@ -363,7 +363,7 @@ def loadarguments():
 
 args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':5,
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam',
-        'gpu_ids':[0,0,0,1,1]}
+        'gpu_ids':[0,0,0,0,0]}
 
 if __name__ == '__main__':
     processes = []
