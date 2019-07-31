@@ -52,7 +52,7 @@ def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
         if shared_param.grad is not None and device == 'cpu':
             return
-        if device == 'cpu' or True:
+        if device == 'cpu':
             shared_param._grad = param.grad
         else:
             shared_param._grad = param.grad.clone().cpu()
@@ -61,20 +61,24 @@ def ensure_shared_grads(model, shared_model):
 class atari_env(object):
     def __init__(self,env_id):
         self.env = gym.make(env_id)
+        self.observation_space = np.array([1])
 
     def step(self,action):
         a,b,c,d = self.env.step(action)
-        print(a.shape)
+        a = _process_frame(a,None)
         return a,b,c,d
 
     def reset(self):
-        return self.env.reset()
+        a = self.env.reset()
+        a = _process_frame(a,None)
+        return a
 
     def render(self):
         self.env.render()
 
     def seed(self,seed):
         self.env.seed(seed)
+
 
 
 
@@ -356,7 +360,7 @@ def loadarguments():
 
 args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':2,
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam',
-        'gpu_ids':[1,1]}
+        'gpu_ids':[0,1]}
 
 if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
