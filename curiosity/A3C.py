@@ -52,7 +52,7 @@ def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
         if shared_param.grad is not None and device == 'cpu':
             return
-        if device == 'cpu':
+        if device == 'cpu' or True:
             shared_param._grad = param.grad
         else:
             shared_param._grad = param.grad.clone().cpu()
@@ -297,17 +297,20 @@ def train(args, optimizer, rank, shared_model):
             with torch.cuda.device(gpu_id):
                 player.state = torch.from_numpy(state).float().to(device)
 
-        R = torch.zeros(1, 1).to(device)
+        with torch.cuda.device(gpu_id):
+            R = torch.zeros(1, 1).to(device)
         if not player.done:
-            value, _, _ = player.model(
-                (Variable(player.state.unsqueeze(0).float().to(device)), (player.hx, player.cx)))
-            R = value.data
+            with torch.cuda.device(gpu_id):
+                value, _, _ = player.model(
+                    (Variable(player.state.unsqueeze(0).float().to(device)), (player.hx, player.cx)))
+                R = value.data
 
         player.values.append(Variable(R))
         policy_loss = 0
         value_loss = 0
         R = Variable(R)
-        gae = torch.zeros(1, 1).to(device)
+        with torch.cuda.device(gpu_id):
+            gae = torch.zeros(1, 1).to(device)
         reward_sum = 0
         for i in reversed(range(len(player.rewards))):
             reward_sum = reward_sum + player.rewards[i]
@@ -350,10 +353,11 @@ def loadarguments():
 
 
     env = atari_env(args['ENV'])
-
+    the_gpu_id = 1
     shared_model = Policy(env.observation_space.shape[0], action_space)
     if device == 'cuda':
-        shared_model.cuda()
+        with torch.cuda.device(the_gpu_id):
+            shared_model.cuda()
     if args['L']:
         saved_state = torch.load(
             '{0}{1}.dat'.format(args['LMD'], args['ENV']))
@@ -372,11 +376,12 @@ def loadarguments():
     else:
         optimizer = None
 
-args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":1000,"M":10000,'W':5,
+args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':2,
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam',
-        'gpu_ids':[1,1,1,1,1]}
+        'gpu_ids':[1,1]}
 
 if __name__ == '__main__':
+    torch.backends.cudnn.benchmark = False
     processes = []
     loadarguments()
     torch.manual_seed(args['seed'])
