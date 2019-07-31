@@ -217,6 +217,7 @@ def test(args, shared_model,render=False):
     while True:
         if player.done:
             player.model.load_state_dict(shared_model.state_dict())
+            print('loaded model')
         if render:
             env.render()
         player.action_test()
@@ -227,7 +228,7 @@ def test(args, shared_model,render=False):
             player.current_life = 0
             reward_total_sum += reward_sum
             reward_mean = reward_total_sum / num_tests
-            print(reward_sum, player.eps_len, reward_mean)
+            print("test ",reward_sum, player.eps_len, reward_mean)
             loss.append(reward_sum)
             import pickle
             pickle.dump(loss,open('A3Closs','wb'))
@@ -355,7 +356,7 @@ def loadarguments():
     env = atari_env(args['ENV'])
     the_gpu_id = 1
     shared_model = Policy(env.observation_space.shape[0], action_space)
-    if device == 'cuda':
+    if device == 'cuda' and False:
         with torch.cuda.device(the_gpu_id):
             shared_model.cuda()
     if args['L']:
