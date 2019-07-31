@@ -22,6 +22,7 @@ from gym.spaces.box import Box
 from torch.multiprocessing import Process
 import torch.multiprocessing as mp
 from model import Policy
+import copy
 #from SharedOptimizers import SharedAdam
 
 #import gym_pull
@@ -204,8 +205,7 @@ def test(args, shared_model,render=False):
     num_tests = 0
     reward_total_sum = 0
     player = Agent(None, env, args, None,0)
-    player.model = Policy(
-        player.env.observation_space.shape[0], action_space)
+    player.model = copy.deepcopy(shared_model)
     gpu_id = 0
     with torch.cuda.device(gpu_id):
         player.model = player.model.cuda() if gpu_id >= 0 else player.model
@@ -268,8 +268,7 @@ def train(args, optimizer, rank, shared_model):
         optimizer = optim.Adam(shared_model.parameters(), lr=learning_rate)
 
     player = Agent(None, env, args, None,gpu_id)
-    player.model = Policy(
-        player.env.observation_space.shape[0], action_space)
+    player.model = copy.deepcopy(shared_model)
 
     with torch.cuda.device(gpu_id):
         player.model = player.model.cuda() if gpu_id >= 0 else player.model
