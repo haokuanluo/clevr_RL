@@ -8,9 +8,7 @@ import base64
 from PIL import Image
 import io
 import numpy as np
-import pandas as pd
-import os
-from gym_tdw.envs.utils.cos_ops import port_tracker
+
 
 class SceneState:
     def __init__(self):
@@ -108,7 +106,7 @@ class puzzle_state():
 
 def load_scene(dir_name):
     load_scene_example(8, 10, 1, dir_name=dir_name)
-    tdw.send_to_server({"$type": "set_screen_size", "height": 240, "width": 320})
+    tdw.send_to_server({"$type": "set_screen_size", "height": 480, "width": 640})
     # Setup camera 1
     tdw.send_to_server([{"$type": "create_avatar", "type": "A_Img_Caps_Kinematic", "id": "uniqueid1"},
                         {"$type": "teleport_avatar_to", "avatar_id": "uniqueid1", "env_id": 0,
@@ -120,14 +118,14 @@ def load_scene(dir_name):
                         "euler_angles": {"x": 41.021, "y": 24.494, "z": 0}})
 
     # Setup camera 2
-    # tdw.send_to_server([{"$type": "create_avatar", "type": "A_Img_Caps_Kinematic", "id": "uniqueid2"},
-    #                     {"$type": "teleport_avatar_to", "avatar_id": "uniqueid2", "env_id": 0,
-    #                      "position": {"x": -4.194, "y": 4.108, "z": -4.626}},
-    #                     ])
-    #
-    # tdw.send_to_server({"$type": "set_pass_masks", "avatar_id": "uniqueid2", "pass_masks": ["_img"]})
-    # tdw.send_to_server({"$type": "rotate_avatar_to_euler_angles", "avatar_id": "uniqueid2", "env_id": 0,
-    #                     "euler_angles": {"x": 90, "y": 0, "z": 0}})
+    tdw.send_to_server([{"$type": "create_avatar", "type": "A_Img_Caps_Kinematic", "id": "uniqueid2"},
+                        {"$type": "teleport_avatar_to", "avatar_id": "uniqueid2", "env_id": 0,
+                         "position": {"x": -4.194, "y": 4.108, "z": -4.626}},
+                        ])
+
+    tdw.send_to_server({"$type": "set_pass_masks", "avatar_id": "uniqueid2", "pass_masks": ["_img"]})
+    tdw.send_to_server({"$type": "rotate_avatar_to_euler_angles", "avatar_id": "uniqueid2", "env_id": 0,
+                        "euler_angles": {"x": 90, "y": 0, "z": 0}})
 
     # Setup environment
     tdw.send_to_server({"$type": "init_enviro_sky"})
@@ -174,9 +172,9 @@ def on_recv(messages):
                     scene_state_data.image_1 = np.array(image)
                     scene_state_data.image_1_ready = True
 
-                # else:
-                #     scene_state_data.image_2 = np.array(image)
-                #     scene_state_data.image_2_ready = True
+                else:
+                    scene_state_data.image_2 = np.array(image)
+                    scene_state_data.image_2_ready = True
 
 
 def on_send():
@@ -188,19 +186,11 @@ def on_send():
 
 def setup_connection():
     tdw.set_controller_id(tdw.get_unique_id())
-
-    tracker = port_tracker()
-    tracker.get_ports()
-    # tdw.connect_send_to_server_socket("tcp://localhost:", 1339)
-    # tdw.connect_recv_from_server_socket("tcp://localhost:", 1340)
-    print(tracker.in_port, tracker.out_port)
-    # tdw.connect_send_to_server_socket("tcp://{0}:".format(tracker.ip), 1347)
-    # tdw.connect_send_to_server_socket("tcp://{0}:".format(tracker.ip), 1348)
-
-    tdw.connect_send_to_server_socket("tcp://52.116.149.123:", tracker.in_port)
-    tdw.connect_recv_from_server_socket("tcp://52.116.149.123:", tracker.out_port)
+    tdw.connect_send_to_server_socket("tcp://52.116.149.123:", 1339)
+    tdw.connect_recv_from_server_socket("tcp://52.116.149.123:", 1340)
+    # git 
     t = tdw.thread(tdw.run, args=[on_send, on_recv])
-    return t, tracker
+    return t
 
 
 def load_puzzle(puzzle=1):
@@ -239,15 +229,13 @@ def take_action(objects, actions):
 def set_output(output):
     tdw.send_to_server([{"$type": "set_avatar_output", "avatar_id": "uniqueid1", "env_id": 0, "images": output,
                         "object_info": True, "avatar_info": True, "child_info": True,
+                        "collision_info": True, "sensors_info": True}, {"$type": "set_avatar_output", "avatar_id": "uniqueid2", "env_id": 0, "images": output,
+                        "object_info": True, "avatar_info": True, "child_info": True,
                         "collision_info": True, "sensors_info": True}])
-                        # {"$type": "set_avatar_output", "avatar_id": "uniqueid2", "env_id": 0, "images": output,
-                        # "object_info": True, "avatar_info": True, "child_info": True,
-                        # "collision_info": True, "sensors_info": True}])
 
 
 def update_info():
     tdw.send_to_server({"$type": "get_objects_data"})
-
 
 def reset_scene(objects):
     reset_params = objects["reset_params"]

@@ -2,15 +2,15 @@ from gym_tdw.envs.tdw_env import TdwEnv
 import os
 from gym_tdw.envs.utils import gym_utils
 
-class TdwEnv_puzzle_5(TdwEnv):
+class TdwEnv_puzzle_2(TdwEnv):
 
     def __init__(self):
         print(os.getcwd())
-        self.game_thread, self.tracker = gym_utils.setup_connection()
+        self.game_thread = gym_utils.setup_connection()
 
         gym_utils.load_scene("example")
         print("Done loading the scene")
-        self.objects = gym_utils.load_puzzle(5)
+        self.objects = gym_utils.load_puzzle(2)
         self.puzzle_state = gym_utils.puzzle_state(self.objects)
         print("Done loading the puzzle")
         self.output_images = False

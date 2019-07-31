@@ -61,6 +61,12 @@ def _process_frame(frame, conf):
     #print(frame.shape)
     frame = resize(frame, (80, 80))
     frame = np.reshape(frame, [1, 80, 80])
+    #if True:
+        #from PIL import Image
+        #img = Image.fromarray(frame[0])
+        #img.save('my.png')
+        #img.show()
+    #    plt.imsave('fname.png', frame[0])
     return frame
 
 class AtariRescale(vectorized.ObservationWrapper):

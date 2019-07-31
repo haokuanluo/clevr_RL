@@ -6,7 +6,7 @@ class TdwEnv_puzzle_2(TdwEnv):
 
     def __init__(self):
         print(os.getcwd())
-        self.game_thread = gym_utils.setup_connection()
+        self.game_thread, self.tracker = gym_utils.setup_connection()
 
         gym_utils.load_scene("example")
         print("Done loading the scene")

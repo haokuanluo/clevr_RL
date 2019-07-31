@@ -140,38 +140,24 @@ def puzzle_2():
 
 
 def puzzle_4():
-    reset_params = {}
+    sphere = primitives.create_main_sphere({"x": -4.533, "y": 0.8749, "z": -3.688})
     target_spheres = []
-    pos = {"x": -4.533, "y": 0.8749, "z": -3.688}
-    sphere = primitives.create_main_sphere(pos)
-    reset_params[sphere] = pos
-
-    pos = {"x": -4.492, "y": 0.8749, "z": -4.459}
-    tgt = primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, pos)
-    target_spheres.append(tgt)
-    reset_params[tgt] = pos
-    pos = {"x": -4.072, "y": 0.8749, "z": -3.899}
-    tgt = primitives.create_target_sphere({"x": -23.787, "y": 3, "z": -5.012}, pos)
-    target_spheres.append(tgt)
-    reset_params[tgt] = pos
-    pos = {"x": -3.921, "y": 0.8749, "z": -4.52}
-    tgt = primitives.create_target_sphere({"x": -25.787, "y": 3, "z": -5.012}, pos)
-    target_spheres.append(tgt)
-    reset_params[tgt] = pos
+    target_spheres.append(primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -4.492, "y": 0.8749, "z": -4.459}))
+    target_spheres.append(primitives.create_target_sphere({"x": -23.787, "y": 3, "z": -5.012}, {"x": -4.072, "y": 0.8749, "z": -3.899}))
+    target_spheres.append(primitives.create_target_sphere({"x": -25.787, "y": 3, "z": -5.012}, {"x": -3.921, "y": 0.8749, "z": -4.52}))
     # target_spheres.append(
     #     primitives.create_target_sphere({"x": -19.787, "y": 3, "z": -5.012}, {"x": -4.215, "y": 0.8749, "z": -5.185}))
     # target_spheres.append(
     #     primitives.create_target_sphere({"x": -23.787, "y": 3, "z": -5.012}, {"x": -4.027, "y": 0.8749, "z": -5.152}))
     # target_spheres.append(
     #     primitives.create_target_sphere({"x": -25.787, "y": 3, "z": -5.012}, {"x": -4.076, "y": 0.8749, "z": -4.935}))
-    reset_params.update(primitives.create_wall(-4.387, -4.129, "h", "r", 5))
-    reset_params.update(primitives.create_wall(-4.092, -4.437, "v", "d", 3, profile=[0,1,2]))
+    primitives.create_wall(-4.387, -4.129, "h", "r", 5)
+    primitives.create_wall(-4.092, -4.437, "v", "d", 3, profile=[0,1,2])
     goal_boundaries = primitives.create_goal(-4.349, -5.086)
     return_objects = {
         "sphere": sphere,
         "target_spheres": target_spheres,
-        "goal_boundaries": goal_boundaries,
-        "reset_params": reset_params
+        "goal_boundaries": goal_boundaries
     }
     return return_objects
 

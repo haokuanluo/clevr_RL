@@ -10,7 +10,7 @@ class TdwEnv(gym.Env):
 
     def __init__(self):
         print(os.getcwd())
-        self.game_thread = gym_utils.setup_connection()
+        self.game_thread, self.tracker = gym_utils.setup_connection()
 
         gym_utils.load_scene("example")
         print("Done loading the scene")
@@ -57,18 +57,18 @@ class TdwEnv(gym.Env):
 
         if self.output_images:
             gym_utils.scene_state_data.image_1_ready = False
-            gym_utils.scene_state_data.image_2_ready = False
+            # gym_utils.scene_state_data.image_2_ready = False
             gym_utils.scene_state_data.object_updated = False
         gym_utils.take_action(self.objects, action)
         if self.output_images:
-            while not (gym_utils.scene_state_data.image_1_ready and gym_utils.scene_state_data.image_2_ready):
+            while not gym_utils.scene_state_data.image_1_ready :
                 pass
         else:
             time.sleep(0.1)
 
         obs = {
             "image_1": gym_utils.scene_state_data.image_1,
-            "image_2": gym_utils.scene_state_data.image_2
+            # "image_2": gym_utils.scene_state_data.image_2
         }
         if gym_utils.scene_state_data.collided:
             c1, c2 = gym_utils.scene_state_data.parse_collision_data()
@@ -107,4 +107,8 @@ class TdwEnv(gym.Env):
         pass
 
     def _seed(self):
+        pass
+
+    def close(self):
+        self.tracker.free_up_port()
         pass

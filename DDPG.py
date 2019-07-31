@@ -49,7 +49,6 @@ parser.add_argument('--update_iteration', default=10, type=int)
 args = parser.parse_args()
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device = 'cpu'
 script_name = os.path.basename(__file__)
 env = gym.make('gym_tdw:tdw_puzzle_1-v0')
 env.set_observation(True)
@@ -61,10 +60,10 @@ if args.seed:
 
 state_dim = 500
 action_dim = 2
-max_action = 100
+max_action = 20
 min_Val = torch.tensor(1e-7).float().to(device) # min value
 
-directory = './exp' + script_name + args.env_name +'./'
+#directory = './exp' + script_name + args.env_name +'./'
 
 class Replay_buffer():
     '''
