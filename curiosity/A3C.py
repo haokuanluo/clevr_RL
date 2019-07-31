@@ -365,22 +365,22 @@ args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':5,
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam',
         'gpu_ids':[0,0,0,1,1]}
 
-#mp.set_start_method('spawn')
-processes = []
-loadarguments()
-torch.manual_seed(args['seed'])
-torch.cuda.manual_seed(args['seed'])
-mp.set_start_method('spawn')
+if __name__ == '__main__':
+    processes = []
+    loadarguments()
+    torch.manual_seed(args['seed'])
+    torch.cuda.manual_seed(args['seed'])
+    mp.set_start_method('spawn')
 
-p = Process(target=test, args=(args, shared_model))
-p.start()
-processes.append(p)
-
-time.sleep(0.1)
-for rank in range(0, args['W']):
-    p = Process(
-        target=train, args=( args,  optimizer,rank,shared_model))
+    p = Process(target=test, args=(args, shared_model))
     p.start()
     processes.append(p)
-for p in processes:
-    p.join()
+
+    time.sleep(0.1)
+    for rank in range(0, args['W']):
+        p = Process(
+            target=train, args=(args, optimizer, rank, shared_model))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
