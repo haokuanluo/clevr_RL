@@ -363,7 +363,7 @@ def loadarguments():
 
 args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':5,
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam',
-        'gpu_ids':[0,0,0,0,0]}
+        'gpu_ids':[1,1,1,1,1]}
 
 if __name__ == '__main__':
     processes = []
