@@ -43,17 +43,18 @@ from model import Policy
 learning_rate = 0.001
 action_space = 6
 #device = 'cuda' if torch.cuda.is_available() else 'cpu'
-#device = 'cuda'
-device = 'cpu'
+device = 'cuda'
+#device = 'cpu'
 
 
 def ensure_shared_grads(model, shared_model):
-    for param, shared_param in zip(model.parameters(),
-                                   shared_model.parameters()):
-        if shared_param.grad is not None:
+    for param, shared_param in zip(model.parameters(), shared_model.parameters()):
+        if shared_param.grad is not None and device == 'cpu':
             return
-        shared_param._grad = param.grad
-
+        if device == 'cpu':
+            shared_param._grad = param.grad
+        else:
+            shared_param._grad = param.grad.clone().cpu()
 def atari_env(env_id):
     env = gym.make(env_id)
     if len(env.observation_space.shape) > 1:
@@ -242,7 +243,9 @@ def train(args, optimizer, rank, shared_model):
 
     action_space = 6
 
-    torch.manual_seed(args['seed'] )
+    #torch.manual_seed(args['seed'] )
+    torch.manual_seed(args['seed'] + rank)
+    torch.cuda.manual_seed(args['seed'] + rank)
     #gym_pull.pull('github.com/ppaquette/gym-doom')
     env = atari_env('PongNoFrameskip-v4')
 
@@ -255,11 +258,20 @@ def train(args, optimizer, rank, shared_model):
     player.model = Policy(
         player.env.observation_space.shape[0], action_space)
     if device == 'cuda':
-        player.model.cuda()
+        gpu_id = args['gpu_ids'][rank]
+        with torch.cuda.device(gpu_id):
+            player.model = player.model.cuda() if gpu_id >= 0 else player.model
+
+
+
+    player.model.train()
+
+
     player.state = player.env.reset()
     player.state = torch.from_numpy(player.state).float().to(device)
     while True:
-        player.model.load_state_dict(shared_model.state_dict())
+        with torch.cuda.device(gpu_id):
+            player.model.load_state_dict(shared_model.state_dict())
         for step in range(args['NS']):
             player.action_train()
             #if args['CL']:
@@ -271,7 +283,8 @@ def train(args, optimizer, rank, shared_model):
             player.eps_len = 0
             player.current_life = 0
             state = player.env.reset()
-            player.state = torch.from_numpy(state).float().to(device)
+            with torch.cuda.device(gpu_id):
+                player.state = torch.from_numpy(state).float().to(device)
 
         R = torch.zeros(1, 1).to(device)
         if not player.done:
@@ -349,12 +362,15 @@ def loadarguments():
         optimizer = None
 
 args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':5,
-         "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam'
-        }
+         "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam',
+        'gpu_ids':[0,0,0,1,1]}
 
 #mp.set_start_method('spawn')
 processes = []
 loadarguments()
+torch.manual_seed(args['seed'])
+torch.cuda.manual_seed(args['seed'])
+mp.set_start_method('spawn')
 
 p = Process(target=test, args=(args, shared_model))
 p.start()
