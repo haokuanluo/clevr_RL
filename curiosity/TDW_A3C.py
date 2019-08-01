@@ -86,8 +86,8 @@ class atari_env(object):
     def step(self,action):
         action = self.transform_action(action)
         a,b,c,d = self.env.step(action)
-        print(b,action)
         b = b + self.aux_reward(a)
+        print(b,action)
         if c and b<0:
             b = b - 5
 
@@ -210,7 +210,6 @@ class Agent(object):
         return self
 loss = []
 def test(args, shared_model,render=False):
-    action_space = 6
 
     torch.manual_seed(args['seed'])
     torch.cuda.manual_seed(args['seed'])
@@ -272,7 +271,6 @@ def test(args, shared_model,render=False):
 
 def train(args, optimizer, rank, shared_model):
 
-    action_space = 6
     gpu_id = args['gpu_ids'][rank]
     #torch.manual_seed(args['seed'] )
     torch.manual_seed(args['seed'] + rank)
@@ -351,6 +349,8 @@ def train(args, optimizer, rank, shared_model):
         ensure_shared_grads(player.model, shared_model)
         optimizer.step()
         player.clear_actions()
+        player.env.close()    #######
+        break                #######
 
 
 def loadarguments():
@@ -394,9 +394,9 @@ def loadarguments():
     else:
         optimizer = None
 
-args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':2,
+args = {'LR': 0.0001, "G":0.01, "T":1.00,"NS":10,"M":10,'W':1,   ###############
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'gym_tdw:tdw_puzzle_1-v0','L':False,'SO':False,'OPT':'Adam',
-        'gpu_ids':[0,1]}
+        'gpu_ids':[0]}
 
 if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
@@ -406,9 +406,9 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(args['seed'])
     mp.set_start_method('spawn')
 
-    p = Process(target=test, args=(args, shared_model))
-    p.start()
-    processes.append(p)
+    #p = Process(target=test, args=(args, shared_model))
+    #p.start()
+    #processes.append(p)
 
     time.sleep(0.1)
     for rank in range(0, args['W']):
