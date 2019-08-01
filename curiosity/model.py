@@ -26,6 +26,7 @@ class Policy(nn.Module):
         self.bn3 = nn.BatchNorm2d(32)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
         self.bn4 = nn.BatchNorm2d(32)
+        self.fc = nn.Linear(9600,800)
 
 
         self.lstm = nn.LSTMCell(800, 256)
@@ -39,8 +40,8 @@ class Policy(nn.Module):
 
     def forward(self, x):
         x, (hx,cx) = x
-        print(x.shape)
-        #x = x.permute(2,0,1)
+        
+        x = x.permute(0,3,1,2)
         #x.unsqueeze_(0)
 
         #x = x.float() / 255
@@ -51,6 +52,7 @@ class Policy(nn.Module):
         x = F.relu(self.bn3(self.conv3(x)))
         x = F.relu(self.bn4(self.conv4(x)))
         x = x.view(x.size(0),-1)
+        x = self.fc(x)
 
         hx, cx = self.lstm(x, (hx, cx))
         x = hx
@@ -82,6 +84,7 @@ class Inverse(nn.Module):
 
     def forward(self, x):
 
+        x = x.permute(0,3,1,2)
         #x = x.permute(2,0,1)
         #x.unsqueeze_(0)
 
