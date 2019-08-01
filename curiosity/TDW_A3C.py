@@ -89,19 +89,19 @@ class atari_env(object):
     def step(self,action):
     
         action = self.transform_action(action)
-        print('start')
-        action = {'x':5,'z':5}
-        print(action)
-        t = time.time()
+        #print('start')
+        #action = {'x':5,'z':5}
+        #print(action)
+        #t = time.time()
         
         a,b,c,d = self.env.step(action)
-        print('finish',time.time()-t)
+        #print('finish',time.time()-t)
         b = b + self.aux_reward(a)
-        #print(b,action,c)
+        print(b,action,c)
         if c and b<0:
             b = b - 5
 
-        a = _process_frame(a['image_1'],None)
+        a = a['image_1'] #_process_frame(a['image_1'],None)
         return a,b,c,d
 
     def reset(self):
@@ -430,9 +430,9 @@ if __name__ == '__main__':
     loadarguments()
     torch.manual_seed(args['seed'])
     torch.cuda.manual_seed(args['seed'])
-    small_test()
+    #small_test()
     #mp.set_start_method('spawn')
-    #train(args,optimizer,0,shared_model)
+    train(args,optimizer,0,shared_model)
     #p = Process(target=test, args=(args, shared_model))
     #p.start()
     #processes.append(p)
