@@ -86,6 +86,7 @@ class atari_env(object):
     def step(self,action):
         action = self.transform_action(action)
         a,b,c,d = self.env.step(action)
+        print(b,action)
         b = b + self.aux_reward(a)
         if c and b<0:
             b = b - 5
