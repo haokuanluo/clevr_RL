@@ -290,6 +290,7 @@ def train(args, optimizer, rank, shared_model):
             player.model = player.model.cuda() if gpu_id >= 0 else player.model
 
         player.model.train()
+        step_loss = []
 
         player.state = player.env.reset()
         player.state = torch.from_numpy(player.state).float().to(device)
@@ -297,16 +298,22 @@ def train(args, optimizer, rank, shared_model):
         while True:
             with torch.cuda.device(gpu_id):
                 player.model.load_state_dict(shared_model.state_dict())
+            steps = 0
             for step in range(args['NS']):
-                print(step)
+                #print(step)
+                steps = steps + 1
                 player.action_train()
                 # if args['CL']:
                 #    player.check_state()
-                print(step)
+                #print(step)
                 if player.done:
                     print("break done")
                     break
-
+            if player.reward < 0:
+                steps = 1000
+            step_loss.append(steps)
+            print(step_loss)
+            pickle.dump(step_loss, open('TDW_A2C_step_loss.p', 'wb'))
             if player.done:
                 player.eps_len = 0
                 player.current_life = 0
