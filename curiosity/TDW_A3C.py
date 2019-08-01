@@ -276,6 +276,15 @@ def test(args, shared_model,render=False):
             with torch.cuda.device(gpu_id):
                 player.state = torch.from_numpy(state).float().to(device)
 
+def small_test():
+    env = gym.make('gym_tdw:tdw_puzzle_1-v0')
+    env.set_observation(True)
+    for i in range(100):
+        action = {"x": random.randint(-15, 15), "z": random.randint(-15, 15)}
+        t = time.time()
+        obs, reward, episode_done, _ = env.step(action)
+        print(reward, time.time() - t)
+    env.close()
 
 def train(args, optimizer, rank, shared_model):
 
@@ -421,8 +430,9 @@ if __name__ == '__main__':
     loadarguments()
     torch.manual_seed(args['seed'])
     torch.cuda.manual_seed(args['seed'])
+    small_test()
     #mp.set_start_method('spawn')
-    train(args,optimizer,0,shared_model)
+    #train(args,optimizer,0,shared_model)
     #p = Process(target=test, args=(args, shared_model))
     #p.start()
     #processes.append(p)
