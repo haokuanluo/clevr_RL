@@ -19,8 +19,8 @@ from skimage.color import rgb2gray
 #from universe.wrappers import Unvectorize, Vectorize
 from torch.autograd import Variable
 from gym.spaces.box import Box
-from torch.multiprocessing import Process
-import torch.multiprocessing as mp
+#from torch.multiprocessing import Process
+#import torch.multiprocessing as mp
 from model import Policy
 import copy
 #from SharedOptimizers import SharedAdam
@@ -68,6 +68,7 @@ class atari_env(object):
         self.observation_space = np.array([1])
 
     def transform_action(self,action):
+        action = action[0][0]
         multiplier = 15 / grid
         return {'x': (action // grid) * multiplier - 7, 'z': (action % grid) * multiplier - 7}
 
@@ -87,7 +88,7 @@ class atari_env(object):
         action = self.transform_action(action)
         a,b,c,d = self.env.step(action)
         b = b + self.aux_reward(a)
-        print(b,action)
+        print(b,action,c)
         if c and b<0:
             b = b - 5
 
@@ -123,9 +124,7 @@ def _process_frame(frame, conf):
     frame = resize(frame, (80, 80))
     frame = np.reshape(frame, [1, 80, 80])
     if True:
-        from PIL import Image
-        img = Image.fromarray(frame[0])
-        img.save('my.png')
+        plt.imsave('fname.png', frame[0])
     return frame
 
 
@@ -271,6 +270,7 @@ def test(args, shared_model,render=False):
 
 def train(args, optimizer, rank, shared_model):
 
+    print("start training thread ",rank)
     gpu_id = args['gpu_ids'][rank]
     #torch.manual_seed(args['seed'] )
     torch.manual_seed(args['seed'] + rank)
@@ -278,7 +278,7 @@ def train(args, optimizer, rank, shared_model):
     #gym_pull.pull('github.com/ppaquette/gym-doom')
     env = atari_env(args['ENV'])
 
-    try:
+    if True:
         env.seed(args['seed'] + rank)
         if optimizer == None:
             optimizer = optim.Adam(shared_model.parameters(), lr=learning_rate)
@@ -293,14 +293,18 @@ def train(args, optimizer, rank, shared_model):
 
         player.state = player.env.reset()
         player.state = torch.from_numpy(player.state).float().to(device)
+        print('wtf')
         while True:
             with torch.cuda.device(gpu_id):
                 player.model.load_state_dict(shared_model.state_dict())
             for step in range(args['NS']):
+                print(step)
                 player.action_train()
                 # if args['CL']:
                 #    player.check_state()
+                print(step)
                 if player.done:
+                    print("break done")
                     break
 
             if player.done:
@@ -346,10 +350,8 @@ def train(args, optimizer, rank, shared_model):
             ensure_shared_grads(player.model, shared_model)
             optimizer.step()
             player.clear_actions()
-            player.env.close()  #######
-            break  #######
-    except:
-        env.close()
+            #player.env.close()  #######
+            #break  #######
 
 
 def loadarguments():
@@ -369,9 +371,9 @@ def loadarguments():
 
 
 
-    env = atari_env(args['ENV'])
+    #env = atari_env(args['ENV'])
     the_gpu_id = 1
-    shared_model = Policy(env.observation_space.shape[0], action_space)
+    shared_model = Policy(1, action_space)
     if device == 'cuda' and False:
         with torch.cuda.device(the_gpu_id):
             shared_model.cuda()
@@ -393,7 +395,7 @@ def loadarguments():
     else:
         optimizer = None
 
-args = {'LR': 0.0001, "G":0.01, "T":1.00,"NS":10,"M":10,'W':1,   ###############
+args = {'LR': 0.0001, "G":0.01, "T":1.00,"NS":1000,"M":1000,'W':1,   ###############
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'gym_tdw:tdw_puzzle_1-v0','L':False,'SO':False,'OPT':'Adam',
         'gpu_ids':[0]}
 
@@ -403,17 +405,17 @@ if __name__ == '__main__':
     loadarguments()
     torch.manual_seed(args['seed'])
     torch.cuda.manual_seed(args['seed'])
-    mp.set_start_method('spawn')
-
+    #mp.set_start_method('spawn')
+    train(args,optimizer,0,shared_model)
     #p = Process(target=test, args=(args, shared_model))
     #p.start()
     #processes.append(p)
 
-    time.sleep(0.1)
-    for rank in range(0, args['W']):
-        p = Process(
-            target=train, args=(args, optimizer, rank, shared_model))
-        p.start()
-        processes.append(p)
-    for p in processes:
-        p.join()
+    #time.sleep(0.1)
+    #for rank in range(0, args['W']):
+    #    p = Process(
+    #        target=train, args=(args, optimizer, rank, shared_model))
+    #    p.start()
+    #    processes.append(p)
+    #for p in processes:
+    #    p.join()
