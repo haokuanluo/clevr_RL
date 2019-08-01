@@ -20,7 +20,7 @@ from universe.wrappers import Unvectorize, Vectorize
 from torch.autograd import Variable
 from gym.spaces.box import Box
 
-from model import Policy
+from model import Policy, Inverse, mapping, prediction
 #import gym_pull
 
 
@@ -38,7 +38,7 @@ from model import Policy
 
 #Hyperparameters
 learning_rate = 0.001
-
+action_space = 6
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
@@ -119,6 +119,10 @@ class Agent(object):
         self.log_probs = []
         self.rewards = []
         self.entropies = []
+        self.states = []
+        self.actions = []
+        self.one_hot_actions = []
+        self.next_states = []
         self.done = True
         self.info = None
         self.reward = 0
@@ -138,6 +142,12 @@ class Agent(object):
         action = prob.multinomial(num_samples = 1).data
         log_prob = log_prob.gather(1, Variable(action))
         state, self.reward, self.done, self.info = self.env.step(action.cpu().numpy())
+        self.states.append(self.state)
+        self.next_states.append(torch.from_numpy(state).float().to(device))
+        self.actions.append(action)
+        one_hot_a = torch.zeros(action_space)
+        one_hot_a[action.cpu().numpy()] = 1
+        self.one_hot_actions.append(one_hot_a)
         self.state = torch.from_numpy(state).float()
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
@@ -171,10 +181,16 @@ class Agent(object):
         return self
 
     def clear_actions(self):
+
+
         self.values = []
         self.log_probs = []
         self.rewards = []
         self.entropies = []
+        self.states = []
+        self.actions = []
+        self.one_hot_actions = []
+        self.next_states = []
         return self
 
 loss = []
@@ -192,11 +208,25 @@ def train(args, optimizer):
     player = Agent(None, env, args, None)
     player.model = Policy(
         player.env.observation_space.shape[0], action_space)
-    if device == 'cuda':
-        player.model.cuda()
+
     player.state = player.env.reset()
     player.state = torch.from_numpy(player.state).float().to(device)
-    optimizer = optim.Adam(player.model.parameters(), lr=learning_rate)
+
+    final_dim = 800
+
+    inverse_model = Inverse(player.env.observation_space.shape[0], action_space)
+    mapping_model = mapping(action_space,final_dim)
+    prediction_model = prediction(action_space,final_dim)
+
+    if device == 'cuda':
+        player.model.cuda()
+        inverse_model.cuda()
+        mapping_model.cuda()
+        prediction_model.cuda()
+
+    params = list(player.model.parameters()) + list(inverse_model.parameters())+ list(mapping_model.parameters())+ list(prediction_model.parameters())
+    optimizer = optim.Adam(params, lr=learning_rate)
+
     while True:
 
         for step in range(args['NS']):
@@ -224,6 +254,33 @@ def train(args, optimizer):
         R = Variable(R)
         gae = torch.zeros(1, 1).to(device)
         reward_sum = 0
+
+
+        # loss 3
+
+        states = torch.stack(player.states)
+        print("stacked states shape",states.shape)
+        next_states = torch.stack(player.next_states)
+
+        phi_states = inverse_model(states)
+        phi_next_states = inverse_model(next_states)
+        print(phi_states.shape)
+        concat = torch.cat([phi_states,phi_next_states],dim= 1)
+        actions = mapping_model(concat)
+        actions.to(device)
+        player_actions = torch.stack(player.actions)
+        player_actions.to(device)
+        loss_3 = F.nll_loss(actions, player.actions)
+
+        concat_actions = torch.cat([phi_states,player.one_hot_actions.to(device)],dim=1)
+        print('concat action shape',concat_actions.shape)
+
+        predicted_states = prediction_model(concat_actions)
+        mse = nn.MSELoss()
+
+        loss_5 = mse(predicted_states,phi_next_states)
+
+
         for i in reversed(range(len(player.rewards))):
             reward_sum = reward_sum + player.rewards[i]
             R = args['G'] * R + player.rewards[i]
@@ -233,7 +290,7 @@ def train(args, optimizer):
             # Generalized Advantage Estimataion
             delta_t = player.rewards[i] + args['G'] * \
                 player.values[i + 1].data - player.values[i].data
-            gae = gae * args['G'] * args['T'] + delta_t
+            gae = gae * args['G'] * args['T'] + delta_t + mse(predicted_states[i],phi_next_states[i])
 
             policy_loss = policy_loss - \
                 player.log_probs[i] * \
@@ -242,13 +299,16 @@ def train(args, optimizer):
         import pickle
         loss.append(reward_sum)
         pickle.dump(loss,open('A2Closs','wb'))
+
+
+
         optimizer.zero_grad()
-        (policy_loss + 0.5 * value_loss).backward()
+        (policy_loss + 0.5 * value_loss + 0.5*loss_3 + 0.5*loss_5).backward()
         torch.nn.utils.clip_grad_norm(player.model.parameters(), 40)
         optimizer.step()
         player.clear_actions()
 
-args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,
+args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":100,"M":100,
          "seed":42
         }
 

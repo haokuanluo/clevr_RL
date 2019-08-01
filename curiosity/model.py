@@ -60,10 +60,10 @@ class Policy(nn.Module):
         return state_value, action_score,(hx,cx)
 
 class Inverse(nn.Module):
-    def __init__(self):
+    def __init__(self,num_inputs,action_space):
         super(Inverse, self).__init__()
 
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=2,padding=1)
+        self.conv1 = nn.Conv2d(num_inputs, 32, kernel_size=3, stride=2,padding=1)
         self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 32, kernel_size=3, stride=2,padding=1)
         self.bn2 = nn.BatchNorm2d(32)
@@ -71,7 +71,7 @@ class Inverse(nn.Module):
         self.bn3 = nn.BatchNorm2d(32)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
         self.bn4 = nn.BatchNorm2d(32)
-
+        self.action_space = action_space
 
 
 
@@ -81,24 +81,25 @@ class Inverse(nn.Module):
 
     def forward(self, x):
 
-        x = x.permute(2,0,1)
-        x.unsqueeze_(0)
+        #x = x.permute(2,0,1)
+        #x.unsqueeze_(0)
 
-        x = x.float() / 255
+        #x = x.float() / 255
 
 
-        x = F.CELU(self.bn1(self.conv1(x)))
-        x = F.CELU(self.bn2(self.conv2(x)))
-        x = F.CELU(self.bn3(self.conv3(x)))
-        x = F.CELU(self.bn4(self.conv4(x)))
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
         x = x.view(x.size(0),-1)
 
         #x = F.relu(self.embed(x))
         #x = self.output(x)
         return x
 
+
 class mapping(nn.Module):
-    def __init__(self):
+    def __init__(self,action_space,final_dim):
         super(mapping, self).__init__()
 
 
@@ -108,17 +109,17 @@ class mapping(nn.Module):
 
 
     def forward(self, x):
-        print("the shape of x is ",x.shape)
-        x = torch.cat(x,0)
+        print("the shape of x for mapping is ",x.shape)
+        #x = torch.cat(x,0)
         #x = x.permute(2,0,1)
-        x.unsqueeze_(0)
-        x = x.float() / 255
+        #x.unsqueeze_(0)
+        #x = x.float() / 255
         x = F.relu(self.embed(x))
         x = self.output(x)
-        return x
+        return F.log_softmax(x, dim=1)
 
 class prediction(nn.Module):
-    def __init__(self):
+    def __init__(self,action_space,final_dim):
         super(prediction, self).__init__()
 
 
@@ -128,11 +129,11 @@ class prediction(nn.Module):
 
 
     def forward(self, x):
-        print("the shape of x is ",x.shape)
-        x = torch.cat(x,0)
+        print("the shape of x for prediction is ",x.shape)
+        #x = torch.cat(x,0)
         #x = x.permute(2,0,1)
-        x.unsqueeze_(0)
-        x = x.float() / 255
+        #x.unsqueeze_(0)
+        #x = x.float() / 255
         x = F.relu(self.embed(x))
         x = self.output(x)
         return x
