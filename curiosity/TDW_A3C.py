@@ -1,4 +1,6 @@
 import gym, os
+import random
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import count
@@ -55,7 +57,7 @@ def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
         if shared_param.grad is not None and device == 'cpu':
             return
-        if device == 'cpu':
+        if device == 'cpu' or True:
             shared_param._grad = param.grad
         else:
             shared_param._grad = param.grad.clone().cpu()
@@ -85,10 +87,17 @@ class atari_env(object):
         return -distance.euclidean(pos[0], pos[1])
 
     def step(self,action):
+    
         action = self.transform_action(action)
+        print('start')
+        action = {'x':5,'z':5}
+        print(action)
+        t = time.time()
+        
         a,b,c,d = self.env.step(action)
+        print('finish',time.time()-t)
         b = b + self.aux_reward(a)
-        print(b,action,c)
+        #print(b,action,c)
         if c and b<0:
             b = b - 5
 
@@ -379,9 +388,9 @@ def loadarguments():
 
 
     #env = atari_env(args['ENV'])
-    the_gpu_id = 1
+    the_gpu_id = 0
     shared_model = Policy(1, action_space)
-    if device == 'cuda' and False:
+    if device == 'cuda' and True:
         with torch.cuda.device(the_gpu_id):
             shared_model.cuda()
     if args['L']:
