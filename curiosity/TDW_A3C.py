@@ -278,79 +278,78 @@ def train(args, optimizer, rank, shared_model):
     #gym_pull.pull('github.com/ppaquette/gym-doom')
     env = atari_env(args['ENV'])
 
+    try:
+        env.seed(args['seed'] + rank)
+        if optimizer == None:
+            optimizer = optim.Adam(shared_model.parameters(), lr=learning_rate)
 
-    env.seed(args['seed']+rank )
-    if optimizer == None:
-        optimizer = optim.Adam(shared_model.parameters(), lr=learning_rate)
+        player = Agent(None, env, args, None, gpu_id)
+        player.model = copy.deepcopy(shared_model)
 
-    player = Agent(None, env, args, None,gpu_id)
-    player.model = copy.deepcopy(shared_model)
-
-    with torch.cuda.device(gpu_id):
-        player.model = player.model.cuda() if gpu_id >= 0 else player.model
-
-
-
-    player.model.train()
-
-
-    player.state = player.env.reset()
-    player.state = torch.from_numpy(player.state).float().to(device)
-    while True:
         with torch.cuda.device(gpu_id):
-            player.model.load_state_dict(shared_model.state_dict())
-        for step in range(args['NS']):
-            player.action_train()
-            #if args['CL']:
-            #    player.check_state()
+            player.model = player.model.cuda() if gpu_id >= 0 else player.model
+
+        player.model.train()
+
+        player.state = player.env.reset()
+        player.state = torch.from_numpy(player.state).float().to(device)
+        while True:
+            with torch.cuda.device(gpu_id):
+                player.model.load_state_dict(shared_model.state_dict())
+            for step in range(args['NS']):
+                player.action_train()
+                # if args['CL']:
+                #    player.check_state()
+                if player.done:
+                    break
+
             if player.done:
-                break
+                player.eps_len = 0
+                player.current_life = 0
+                state = player.env.reset()
+                with torch.cuda.device(gpu_id):
+                    player.state = torch.from_numpy(state).float().to(device)
 
-        if player.done:
-            player.eps_len = 0
-            player.current_life = 0
-            state = player.env.reset()
             with torch.cuda.device(gpu_id):
-                player.state = torch.from_numpy(state).float().to(device)
+                R = torch.zeros(1, 1).to(device)
+            if not player.done:
+                with torch.cuda.device(gpu_id):
+                    value, _, _ = player.model(
+                        (Variable(player.state.unsqueeze(0).float().to(device)), (player.hx, player.cx)))
+                    R = value.data
 
-        with torch.cuda.device(gpu_id):
-            R = torch.zeros(1, 1).to(device)
-        if not player.done:
+            player.values.append(Variable(R))
+            policy_loss = 0
+            value_loss = 0
+            R = Variable(R)
             with torch.cuda.device(gpu_id):
-                value, _, _ = player.model(
-                    (Variable(player.state.unsqueeze(0).float().to(device)), (player.hx, player.cx)))
-                R = value.data
+                gae = torch.zeros(1, 1).to(device)
+            reward_sum = 0
+            for i in reversed(range(len(player.rewards))):
+                reward_sum = reward_sum + player.rewards[i]
+                R = args['G'] * R + player.rewards[i]
+                advantage = R - player.values[i]
+                value_loss = value_loss + 0.5 * advantage.pow(2)
 
-        player.values.append(Variable(R))
-        policy_loss = 0
-        value_loss = 0
-        R = Variable(R)
-        with torch.cuda.device(gpu_id):
-            gae = torch.zeros(1, 1).to(device)
-        reward_sum = 0
-        for i in reversed(range(len(player.rewards))):
-            reward_sum = reward_sum + player.rewards[i]
-            R = args['G'] * R + player.rewards[i]
-            advantage = R - player.values[i]
-            value_loss = value_loss + 0.5 * advantage.pow(2)
+                # Generalized Advantage Estimataion
+                delta_t = player.rewards[i] + args['G'] * \
+                          player.values[i + 1].data - player.values[i].data
+                gae = gae * args['G'] * args['T'] + delta_t
 
-            # Generalized Advantage Estimataion
-            delta_t = player.rewards[i] + args['G'] * \
-                player.values[i + 1].data - player.values[i].data
-            gae = gae * args['G'] * args['T'] + delta_t
-
-            policy_loss = policy_loss - \
-                player.log_probs[i] * \
-                Variable(gae) - 0.01 * player.entropies[i]
-        print(reward_sum,len(player.rewards),reward_sum/len(player.rewards))
-        optimizer.zero_grad()
-        (policy_loss + 0.5 * value_loss).backward()
-        torch.nn.utils.clip_grad_norm(player.model.parameters(), 40)
-        ensure_shared_grads(player.model, shared_model)
-        optimizer.step()
-        player.clear_actions()
-        player.env.close()    #######
-        break                #######
+                policy_loss = policy_loss - \
+                              player.log_probs[i] * \
+                              Variable(gae) - 0.01 * player.entropies[i]
+            print(reward_sum, len(player.rewards), reward_sum / len(player.rewards))
+            optimizer.zero_grad()
+            (policy_loss + 0.5 * value_loss).backward()
+            torch.nn.utils.clip_grad_norm(player.model.parameters(), 40)
+            ensure_shared_grads(player.model, shared_model)
+            optimizer.step()
+            player.clear_actions()
+            player.env.close()  #######
+            break  #######
+    except:
+        env.close()
 
 
 def loadarguments():
