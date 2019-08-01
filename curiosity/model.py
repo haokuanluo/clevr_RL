@@ -39,6 +39,7 @@ class Policy(nn.Module):
 
     def forward(self, x):
         x, (hx,cx) = x
+        print(x.shape)
         #x = x.permute(2,0,1)
         #x.unsqueeze_(0)
 
