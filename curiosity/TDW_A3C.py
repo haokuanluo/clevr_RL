@@ -48,6 +48,8 @@ learning_rate = 0.001
 grid = 5
 action_space = grid*grid
 
+global total_step
+total_step = 0
 #device = 'cuda' if torch.cuda.is_available() else 'cpu'
 device = 'cuda'
 #device = 'cpu'
@@ -67,7 +69,8 @@ class atari_env(object):
     def __init__(self,env_id):
         self.env = gym.make(env_id)
         self.env.set_observation(True)
-        self.observation_space = np.array([1])
+        self.observation_space = np.array([1,2,3])
+        self.total_step = 0
 
     def transform_action(self,action):
         action = action[0][0]
@@ -97,7 +100,8 @@ class atari_env(object):
         a,b,c,d = self.env.step(action)
         #print('finish',time.time()-t)
         b = b + self.aux_reward(a)
-        print(b,action,c)
+        self.total_step = self.total_step + 1
+        print(b,action,c,self.total_step)
         if c and b<0:
             b = b - 5
 
@@ -107,7 +111,7 @@ class atari_env(object):
     def reset(self):
         a = self.env.reset()
 
-        a = np.zeros((1,80,80))
+        a = np.zeros((240,320,3))
         return a
 
     def render(self):
@@ -124,7 +128,7 @@ class atari_env(object):
 
 
 
-def _process_frame(frame, conf):
+def _oooprocess_frame(frame, conf):
     #print(frame.shape)
     #frame = frame[conf["crop1"]:conf["crop2"] + 160, :160]
     #frame = resize(rgb2gray(frame), (80, conf["dimension2"]))
@@ -159,7 +163,7 @@ class Agent(object):
 
     def action_train(self):
         if self.done:
-
+            print('i am done')
             with torch.cuda.device(self.gpu_id):
                 self.cx = Variable(torch.zeros(1, 256).float().to(device))
                 self.hx = Variable(torch.zeros(1, 256).float().to(device))
@@ -176,10 +180,10 @@ class Agent(object):
         action = prob.multinomial(num_samples = 1).data
         log_prob = log_prob.gather(1, Variable(action))
         state, self.reward, self.done, self.info = self.env.step(action.cpu().numpy())
-        self.state = torch.from_numpy(state).float()
+        with torch.cuda.device(self.gpu_id):
+            self.state = torch.from_numpy(state).float().to(device)
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
-        #self.reward = max(min(self.reward, 1), -1)
         self.values.append(value)
         self.log_probs.append(log_prob)
         self.rewards.append(self.reward)
@@ -276,16 +280,16 @@ def test(args, shared_model,render=False):
             with torch.cuda.device(gpu_id):
                 player.state = torch.from_numpy(state).float().to(device)
 
-def small_test():
-    env = gym.make('gym_tdw:tdw_puzzle_1-v0')
-    env.set_observation(True)
-    for i in range(100):
-        action = {"x": random.randint(-15, 15), "z": random.randint(-15, 15)}
+def small_test(args):
+    #env = gym.make('gym_tdw:tdw_puzzle_1-v0')
+    #env.set_observation(True)
+    env = atari_env(args['ENV'])
+    for i in range(2000):
+        action = np.array([[10]])
         t = time.time()
         obs, reward, episode_done, _ = env.step(action)
         print(reward, time.time() - t)
     env.close()
-
 def train(args, optimizer, rank, shared_model):
 
     print("start training thread ",rank)
@@ -316,6 +320,8 @@ def train(args, optimizer, rank, shared_model):
         while True:
             with torch.cuda.device(gpu_id):
                 player.model.load_state_dict(shared_model.state_dict())
+            #with torch.cuda.device(gpu_id):
+            #    player.model = player.model.cuda() if gpu_id >= 0 else player.model
             steps = 0
             for step in range(args['NS']):
                 #print(step)
@@ -329,9 +335,6 @@ def train(args, optimizer, rank, shared_model):
                     break
             if player.reward < 0:
                 steps = 1000
-            step_loss.append(steps)
-            print(step_loss)
-            pickle.dump(step_loss, open('TDW_A2C_step_loss.p', 'wb'))
             if player.done:
                 player.eps_len = 0
                 player.current_life = 0
@@ -369,12 +372,16 @@ def train(args, optimizer, rank, shared_model):
                               player.log_probs[i] * \
                               Variable(gae) - 0.01 * player.entropies[i]
             print(reward_sum, len(player.rewards), reward_sum / len(player.rewards))
+            step_loss.append((steps,reward_sum))
+            print(step_loss)
+            pickle.dump(step_loss, open('TDW_A2C_step_loss_reward_sum.p', 'wb'))
             optimizer.zero_grad()
             (policy_loss + 0.5 * value_loss).backward()
             torch.nn.utils.clip_grad_norm(player.model.parameters(), 40)
             ensure_shared_grads(player.model, shared_model)
             optimizer.step()
             player.clear_actions()
+            torch.save(player.model.state_dict(), 'tdw_a2c_model')
             #player.env.close()  #######
             #break  #######
 
@@ -398,7 +405,7 @@ def loadarguments():
 
     #env = atari_env(args['ENV'])
     the_gpu_id = 0
-    shared_model = Policy(1, action_space)
+    shared_model = Policy(3, action_space)
     if device == 'cuda' and True:
         with torch.cuda.device(the_gpu_id):
             shared_model.cuda()
@@ -420,7 +427,7 @@ def loadarguments():
     else:
         optimizer = None
 
-args = {'LR': 0.0001, "G":0.01, "T":1.00,"NS":1000,"M":1000,'W':1,   ###############
+args = {'LR': 0.001, "G":0.01, "T":1.00,"NS":100,"M":100,'W':1,   ###############
          "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'gym_tdw:tdw_puzzle_1-v0','L':False,'SO':False,'OPT':'Adam',
         'gpu_ids':[0]}
 
@@ -430,9 +437,10 @@ if __name__ == '__main__':
     loadarguments()
     torch.manual_seed(args['seed'])
     torch.cuda.manual_seed(args['seed'])
-    #small_test()
+    #small_test(args)
     #mp.set_start_method('spawn')
     train(args,optimizer,0,shared_model)
+
     #p = Process(target=test, args=(args, shared_model))
     #p.start()
     #processes.append(p)
