@@ -25,6 +25,8 @@ from gym.spaces.box import Box
 #import torch.multiprocessing as mp
 from model import Policy
 import copy
+from PIL import Image
+import torchvision.transforms as T
 #from SharedOptimizers import SharedAdam
 
 #import gym_pull
@@ -63,6 +65,10 @@ def ensure_shared_grads(model, shared_model):
             shared_param._grad = param.grad
         else:
             shared_param._grad = param.grad.clone().cpu()
+
+resiz = T.Compose([T.ToPILImage(),
+                    T.Resize(80, interpolation=Image.CUBIC),
+                    T.ToTensor()])
 
 
 class atari_env(object):
@@ -106,12 +112,15 @@ class atari_env(object):
             b = b - 5
 
         a = a['image_1'] #_process_frame(a['image_1'],None)
+        a = a.transpose(2,0,1)
+        a = resiz(a).unsqueeze(0).to(device)
         return a,b,c,d
 
     def reset(self):
-        a = self.env.reset()
+        self.env.reset()
 
-        a = np.zeros((240,320,3))
+        a = torch.zeros(1, 3,80,80).float().to(device)
+
         return a
 
     def render(self):
@@ -172,7 +181,7 @@ class Agent(object):
             self.hx = Variable(self.hx.data)
 
         with torch.cuda.device(self.gpu_id):
-            value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device)), (self.hx, self.cx)))
+            value, logit, (self.hx, self.cx) = self.model((Variable(self.state), (self.hx, self.cx)))
         prob = F.softmax(logit)
         log_prob = F.log_softmax(logit)
         entropy = -(log_prob * prob).sum(1)
@@ -180,8 +189,8 @@ class Agent(object):
         action = prob.multinomial(num_samples = 1).data
         log_prob = log_prob.gather(1, Variable(action))
         state, self.reward, self.done, self.info = self.env.step(action.cpu().numpy())
-        with torch.cuda.device(self.gpu_id):
-            self.state = torch.from_numpy(state).float().to(device)
+        #with torch.cuda.device(self.gpu_id):
+        #    self.state = torch.from_numpy(state).float().to(device)
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
         self.values.append(value)
@@ -198,7 +207,7 @@ class Agent(object):
             self.cx = Variable(self.cx.data, volatile=True)
             self.hx = Variable(self.hx.data, volatile=True)
         with torch.cuda.device(self.gpu_id):
-            value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device), volatile=True), (self.hx, self.cx)))
+            value, logit, (self.hx, self.cx) = self.model((Variable(self.state, volatile=True), (self.hx, self.cx)))
         prob = F.softmax(logit)
         action = prob.max(1)[1].data.cpu().numpy()
         state, self.reward, self.done, self.info = self.env.step(action[0])
@@ -347,7 +356,7 @@ def train(args, optimizer, rank, shared_model):
             if not player.done:
                 with torch.cuda.device(gpu_id):
                     value, _, _ = player.model(
-                        (Variable(player.state.unsqueeze(0).float().to(device)), (player.hx, player.cx)))
+                        (Variable(player.state), (player.hx, player.cx)))
                     R = value.data
 
             player.values.append(Variable(R))

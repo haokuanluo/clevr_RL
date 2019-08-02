@@ -14,7 +14,7 @@ import pickle
 from scipy.spatial import distance
 from tensorboardX import SummaryWriter
 
-final_dim = 640
+final_dim = 800
 class Policy(nn.Module):
     def __init__(self,num_inputs,action_space):
         super(Policy,self).__init__()
@@ -41,16 +41,16 @@ class Policy(nn.Module):
     def forward(self, x):
         x, (hx,cx) = x
         
-        x = x.permute(0,3,1,2)
+        #x = x.permute(0,3,1,2)
         #x.unsqueeze_(0)
 
         #x = x.float() / 255
 
 
         x = F.relu(self.bn1(self.conv1(x)))
-        x = F.max_pool2d(x, 2, 2)
+        #x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.bn2(self.conv2(x)))
-        x = F.max_pool2d(x, 2, 2)
+        #x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.bn3(self.conv3(x)))
         x = F.relu(self.bn4(self.conv4(x)))
         x = x.view(x.size(0),-1)
