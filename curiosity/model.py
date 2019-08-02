@@ -14,6 +14,7 @@ import pickle
 from scipy.spatial import distance
 from tensorboardX import SummaryWriter
 
+final_dim = 640
 class Policy(nn.Module):
     def __init__(self,num_inputs,action_space):
         super(Policy,self).__init__()
@@ -26,10 +27,9 @@ class Policy(nn.Module):
         self.bn3 = nn.BatchNorm2d(32)
         self.conv4 = nn.Conv2d(32, 32, kernel_size=3, stride=2, padding=1)
         self.bn4 = nn.BatchNorm2d(32)
-        self.fc = nn.Linear(9600,800)
 
 
-        self.lstm = nn.LSTMCell(800, 256)
+        self.lstm = nn.LSTMCell(final_dim, 256)
 
         self.critic_linear = nn.Linear(256, 1)
         # The actor layer
@@ -48,11 +48,12 @@ class Policy(nn.Module):
 
 
         x = F.relu(self.bn1(self.conv1(x)))
+        x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.bn2(self.conv2(x)))
+        x = F.max_pool2d(x, 2, 2)
         x = F.relu(self.bn3(self.conv3(x)))
         x = F.relu(self.bn4(self.conv4(x)))
         x = x.view(x.size(0),-1)
-        x = self.fc(x)
 
         hx, cx = self.lstm(x, (hx, cx))
         x = hx
