@@ -1,6 +1,4 @@
 import gym, os
-import random
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import count
@@ -25,8 +23,6 @@ from torch.multiprocessing import Process
 import torch.multiprocessing as mp
 from model import Policy
 import copy
-from PIL import Image
-import torchvision.transforms as T
 #from SharedOptimizers import SharedAdam
 
 #import gym_pull
@@ -45,13 +41,8 @@ import torchvision.transforms as T
 
 
 #Hyperparameters
-learning_rate = 0.003
-
-grid = 5
-action_space = grid*grid
-
-global total_step
-total_step = 0
+learning_rate = 0.001
+action_space = 6
 #device = 'cuda' if torch.cuda.is_available() else 'cpu'
 device = 'cuda'
 #device = 'cpu'
@@ -61,84 +52,37 @@ def ensure_shared_grads(model, shared_model):
     for param, shared_param in zip(model.parameters(), shared_model.parameters()):
         if shared_param.grad is not None and device == 'cpu':
             return
-        if device == 'cpu' or True:
+        if device == 'cpu':
             shared_param._grad = param.grad
         else:
             shared_param._grad = param.grad.clone().cpu()
-
-resiz = T.Compose([T.ToPILImage(),
-                    T.Resize((80,80)),
-                    T.ToTensor()])
 
 
 class atari_env(object):
     def __init__(self,env_id):
         self.env = gym.make(env_id)
-        self.env.set_observation(True)
-        self.observation_space = np.array([1,2,3])
-        self.total_step = 0
-
-    def transform_action(self,action):
-        action = action[0][0]
-        multiplier = 30 / grid
-        return {'x': (action // grid) * multiplier - 13, 'z': (action % grid) * multiplier - 13}
-
-    def aux_reward(self,state):
-        # print(state['object_information'])
-        # return 0
-        pos = []
-        for k, v in state['object_information'].items():
-            if v['model_name'] == 'prim_sphere':
-                x = v['position']
-
-                pos.append((x['x'], x['y'], x['z']))
-
-        return -distance.euclidean(pos[0], pos[1])
+        self.observation_space = np.array([1])
 
     def step(self,action):
-
-        action = self.transform_action(action)
-        #print('start')
-        #action = {'x':5,'z':5}
-        #print(action)
-        #t = time.time()
-
         a,b,c,d = self.env.step(action)
-        #print('finish',time.time()-t)
-        b = b + self.aux_reward(a)
-        self.total_step = self.total_step + 1
-        if self.total_step%10 == 0:
-            print(b,action,c,self.total_step)
-        if c and b<0:
-            b = b - 1
-
-        a = a['image_1'] #_process_frame(a['image_1'],None)
-        a = a.transpose(2,0,1)
-        a = resiz(a).unsqueeze(0).float().to(device)
+        a = _process_frame(a,None)
         return a,b,c,d
 
     def reset(self):
-        self.env.reset()
-
-        a = torch.zeros(1, 3,80,80).float().to(device)
-
+        a = self.env.reset()
+        a = _process_frame(a,None)
         return a
 
     def render(self):
         self.env.render()
 
     def seed(self,seed):
-        pass
-        #self.env.seed(seed)
-
-    def close(self):
-        self.env.close()
+        self.env.seed(seed)
 
 
 
 
-
-def _oooprocess_frame(frame, conf):
+def _process_frame(frame, conf):
     #print(frame.shape)
     #frame = frame[conf["crop1"]:conf["crop2"] + 160, :160]
     #frame = resize(rgb2gray(frame), (80, conf["dimension2"]))
@@ -146,8 +90,6 @@ def _oooprocess_frame(frame, conf):
     #print(frame.shape)
     frame = resize(frame, (80, 80))
     frame = np.reshape(frame, [1, 80, 80])
-    if True:
-        plt.imsave('fname.png', frame[0])
     return frame
 
 
@@ -173,7 +115,7 @@ class Agent(object):
 
     def action_train(self):
         if self.done:
-            print('i am done')
+
             with torch.cuda.device(self.gpu_id):
                 self.cx = Variable(torch.zeros(1, 256).float().to(device))
                 self.hx = Variable(torch.zeros(1, 256).float().to(device))
@@ -182,18 +124,18 @@ class Agent(object):
             self.hx = Variable(self.hx.data)
 
         with torch.cuda.device(self.gpu_id):
-            value, logit, (self.hx, self.cx) = self.model((Variable(self.state), (self.hx, self.cx)))
+            value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device)), (self.hx, self.cx)))
         prob = F.softmax(logit)
         log_prob = F.log_softmax(logit)
         entropy = -(log_prob * prob).sum(1)
         self.entropies.append(entropy)
         action = prob.multinomial(num_samples = 1).data
         log_prob = log_prob.gather(1, Variable(action))
-        self.state, self.reward, self.done, self.info = self.env.step(action.cpu().numpy())
-        #with torch.cuda.device(self.gpu_id):
-        #    self.state = torch.from_numpy(state).float().to(device)
+        state, self.reward, self.done, self.info = self.env.step(action.cpu().numpy())
+        self.state = torch.from_numpy(state).float()
         self.eps_len += 1
         self.done = self.done or self.eps_len >= self.args['M']
+        #self.reward = max(min(self.reward, 1), -1)
         self.values.append(value)
         self.log_probs.append(log_prob)
         self.rewards.append(self.reward)
@@ -208,7 +150,7 @@ class Agent(object):
             self.cx = Variable(self.cx.data, volatile=True)
             self.hx = Variable(self.hx.data, volatile=True)
         with torch.cuda.device(self.gpu_id):
-            value, logit, (self.hx, self.cx) = self.model((Variable(self.state, volatile=True), (self.hx, self.cx)))
+            value, logit, (self.hx, self.cx) = self.model((Variable(self.state.unsqueeze(0).float().to(device), volatile=True), (self.hx, self.cx)))
         prob = F.softmax(logit)
         action = prob.max(1)[1].data.cpu().numpy()
         state, self.reward, self.done, self.info = self.env.step(action[0])
@@ -232,12 +174,13 @@ class Agent(object):
         return self
 loss = []
 def test(args, shared_model,render=False):
+    action_space = 6
 
     torch.manual_seed(args['seed'])
     torch.cuda.manual_seed(args['seed'])
 
     # gym_pull.pull('github.com/ppaquette/gym-doom')
-    env = atari_env(args['ENV'])
+    env = atari_env('PongNoFrameskip-v4')
     reward_sum = 0
     start_time = time.time()
     num_tests = 0
@@ -266,8 +209,8 @@ def test(args, shared_model,render=False):
             player.current_life = 0
             reward_total_sum += reward_sum
             reward_mean = reward_total_sum / num_tests
-            print("test ",reward_sum, player.reward)
-            loss.append((reward_sum,player.reward))
+            print("test ",reward_sum, player.eps_len, reward_mean)
+            loss.append(reward_sum)
             import pickle
             pickle.dump(loss,open('A3Closs','wb'))
             #log['{}_log'.format(args['ENV'])].info(
@@ -290,110 +233,88 @@ def test(args, shared_model,render=False):
             with torch.cuda.device(gpu_id):
                 player.state = torch.from_numpy(state).float().to(device)
 
-def small_test(args):
-    #env = gym.make('gym_tdw:tdw_puzzle_1-v0')
-    #env.set_observation(True)
-    env = atari_env(args['ENV'])
-    for i in range(2000):
-        action = np.array([[10]])
-        t = time.time()
-        obs, reward, episode_done, _ = env.step(action)
-        print(reward, time.time() - t)
-    env.close()
+
 def train(args, optimizer, rank, shared_model):
 
-    print("start training thread ",rank)
+    action_space = 6
     gpu_id = args['gpu_ids'][rank]
     #torch.manual_seed(args['seed'] )
     torch.manual_seed(args['seed'] + rank)
     torch.cuda.manual_seed(args['seed'] + rank)
     #gym_pull.pull('github.com/ppaquette/gym-doom')
-    env = atari_env(args['ENV'])
+    env = atari_env('PongNoFrameskip-v4')
 
-    if True:
-        env.seed(args['seed'] + rank)
-        if optimizer == None:
-            optimizer = optim.Adam(shared_model.parameters(), lr=learning_rate)
 
-        player = Agent(None, env, args, None, gpu_id)
-        player.model = copy.deepcopy(shared_model)
+    env.seed(args['seed']+rank )
+    if optimizer == None:
+        optimizer = optim.Adam(shared_model.parameters(), lr=learning_rate)
+
+    player = Agent(None, env, args, None,gpu_id)
+    player.model = copy.deepcopy(shared_model)
+
+    with torch.cuda.device(gpu_id):
+        player.model = player.model.cuda() if gpu_id >= 0 else player.model
+
+
+
+    player.model.train()
+
+
+    player.state = player.env.reset()
+    player.state = torch.from_numpy(player.state).float().to(device)
+    while True:
+        with torch.cuda.device(gpu_id):
+            player.model.load_state_dict(shared_model.state_dict())
+        for step in range(args['NS']):
+            player.action_train()
+            #if args['CL']:
+            #    player.check_state()
+            if player.done:
+                break
+
+        if player.done:
+            player.eps_len = 0
+            player.current_life = 0
+            state = player.env.reset()
+            with torch.cuda.device(gpu_id):
+                player.state = torch.from_numpy(state).float().to(device)
 
         with torch.cuda.device(gpu_id):
-            player.model = player.model.cuda() if gpu_id >= 0 else player.model
-
-        player.model.train()
-        step_loss = []
-
-        player.state = player.env.reset()
-        #player.state = torch.from_numpy(player.state).float().to(device)
-        print('wtf')
-        while True:
+            R = torch.zeros(1, 1).to(device)
+        if not player.done:
             with torch.cuda.device(gpu_id):
-                player.model.load_state_dict(shared_model.state_dict())
-            #with torch.cuda.device(gpu_id):
-            #    player.model = player.model.cuda() if gpu_id >= 0 else player.model
-            steps = 0
-            for step in range(args['NS']):
-                #print(step)
-                steps = steps + 1
-                player.action_train()
-                # if args['CL']:
-                #    player.check_state()
-                #print(step)
-                if player.done:
-                    print("break done")
-                    break
-            if player.reward < 0:
-                steps = 1000
-            if player.done:
-                player.eps_len = 0
-                player.current_life = 0
-                state = player.env.reset()
-                #with torch.cuda.device(gpu_id):
-                #    player.state = torch.from_numpy(state).float().to(device)
+                value, _, _ = player.model(
+                    (Variable(player.state.unsqueeze(0).float().to(device)), (player.hx, player.cx)))
+                R = value.data
 
-            with torch.cuda.device(gpu_id):
-                R = torch.zeros(1, 1).to(device)
-            if not player.done:
-                with torch.cuda.device(gpu_id):
-                    value, _, _ = player.model(
-                        (Variable(player.state), (player.hx, player.cx)))
-                    R = value.data
+        player.values.append(Variable(R))
+        policy_loss = 0
+        value_loss = 0
+        R = Variable(R)
+        with torch.cuda.device(gpu_id):
+            gae = torch.zeros(1, 1).to(device)
+        reward_sum = 0
+        for i in reversed(range(len(player.rewards))):
+            reward_sum = reward_sum + player.rewards[i]
+            R = args['G'] * R + player.rewards[i]
+            advantage = R - player.values[i]
+            value_loss = value_loss + 0.5 * advantage.pow(2)
 
-            player.values.append(Variable(R))
-            policy_loss = 0
-            value_loss = 0
-            R = Variable(R)
-            with torch.cuda.device(gpu_id):
-                gae = torch.zeros(1, 1).to(device)
-            reward_sum = 0
-            for i in reversed(range(len(player.rewards))):
-                reward_sum = reward_sum + player.rewards[i]
-                R = args['G'] * R + player.rewards[i]
-                advantage = R - player.values[i]
-                value_loss = value_loss + 0.5 * advantage.pow(2)
+            # Generalized Advantage Estimataion
+            delta_t = player.rewards[i] + args['G'] * \
+                player.values[i + 1].data - player.values[i].data
+            gae = gae * args['G'] * args['T'] + delta_t
 
-                # Generalized Advantage Estimataion
-                delta_t = player.rewards[i] + args['G'] * \
-                          player.values[i + 1].data - player.values[i].data
-                gae = gae * args['G'] * args['T'] + delta_t
-
-                policy_loss = policy_loss - \
-                              player.log_probs[i] * \
-                              Variable(gae) - 0.01 * player.entropies[i]
-            print(reward_sum, len(player.rewards), reward_sum / len(player.rewards))
-            step_loss.append((steps,reward_sum,reward_sum / len(player.rewards)))
-            print(step_loss)
-            pickle.dump(step_loss, open('TDW_A2C_step_loss_reward_sum.p', 'wb'))
-            optimizer.zero_grad()
-            (policy_loss + 0.5 * value_loss).backward()
-            torch.nn.utils.clip_grad_norm(player.model.parameters(), 40)
-            ensure_shared_grads(player.model, shared_model)
-            optimizer.step()
-            player.clear_actions()
-            torch.save(player.model.state_dict(), 'tdw_a2c_model')
-            #player.env.close()  #######
-            #break  #######
+            policy_loss = policy_loss - \
+                player.log_probs[i] * \
+                Variable(gae) - 0.01 * player.entropies[i]
+        print(reward_sum,len(player.rewards),reward_sum/len(player.rewards))
+        optimizer.zero_grad()
+        (policy_loss + 0.5 * value_loss).backward()
+        torch.nn.utils.clip_grad_norm(player.model.parameters(), 40)
+        ensure_shared_grads(player.model, shared_model)
+        optimizer.step()
+        player.clear_actions()
 
 
 def loadarguments():
@@ -413,10 +334,10 @@ def loadarguments():
 
 
 
-    #env = atari_env(args['ENV'])
-    the_gpu_id = 0
-    shared_model = Policy(3, action_space)
-    if device == 'cuda' and True:
+    env = atari_env(args['ENV'])
+    the_gpu_id = 1
+    shared_model = Policy(env.observation_space.shape[0], action_space)
+    if device == 'cuda' and False:
         with torch.cuda.device(the_gpu_id):
             shared_model.cuda()
     if args['L']:
@@ -437,9 +358,9 @@ def loadarguments():
     else:
         optimizer = None
 
-args = {'LR': 0.001, "G":0.001, "T":1.00,"NS":100,"M":100,'W':1,   ###############
-         "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'gym_tdw:tdw_puzzle_1-v0','L':False,'SO':False,'OPT':'Adam',
-        'gpu_ids':[0]}
+args = {'LR': 0.0001, "G":0.99, "T":1.00,"NS":10000,"M":10000,'W':2,
+         "seed":42,'LMD':'/modeldata/','SMD':'/modeldata/','ENV':'PongNoFrameskip-v4','L':False,'SO':False,'OPT':'Adam',
+        'gpu_ids':[0,1]}
 
 if __name__ == '__main__':
     torch.backends.cudnn.benchmark = False
@@ -447,19 +368,17 @@ if __name__ == '__main__':
     loadarguments()
     torch.manual_seed(args['seed'])
     torch.cuda.manual_seed(args['seed'])
-    #small_test(args)
-    #mp.set_start_method('spawn')
-    train(args,optimizer,0,shared_model)
+    mp.set_start_method('spawn')
 
-    #p = Process(target=test, args=(args, shared_model))
-    #p.start()
-    #processes.append(p)
+    p = Process(target=test, args=(args, shared_model))
+    p.start()
+    processes.append(p)
 
-    #time.sleep(0.1)
-    #for rank in range(0, args['W']):
-    #    p = Process(
-    #        target=train, args=(args, optimizer, rank, shared_model))
-    #    p.start()
-    #    processes.append(p)
-    #for p in processes:
-    #    p.join()
+    time.sleep(0.1)
+    for rank in range(0, args['W']):
+        p = Process(
+            target=train, args=(args, optimizer, rank, shared_model))
+        p.start()
+        processes.append(p)
+    for p in processes:
+        p.join()
